@@ -79,6 +79,8 @@ IF(DEFINED CMAKE_BUILD_TYPE)
 ENDIF()
 
 OPTION(WITH_DEBUG "Use dbug/safemutex" OFF)
+add_compile_options(-Wno-error=template-id-cdtor)
+
 
 # Distinguish between community and non-community builds, with the
 # default being a community build. This does not impact the feature

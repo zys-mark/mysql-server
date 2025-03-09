@@ -43,6 +43,87 @@
 #include "sql_view.h"        // VIEW_ANY_ACL
 #include "template_utils.h"
 
+#ifndef DBUG_OFF
+
+/* Debugger help function */
+static char dbug_item_print_buf[2048];
+
+const char* dbug_print_item(Item* item) {
+  char* buf = dbug_item_print_buf;
+  String str(buf, sizeof(dbug_item_print_buf), &my_charset_bin);
+  str.length(0);
+  if (!item)
+    return "(Item*)NULL";
+
+  THD* thd = current_thd;
+  ulonglong save_option_bits = thd->variables.option_bits;
+  thd->variables.option_bits &= ~OPTION_QUOTE_SHOW_CREATE;
+
+  item->print(&str, QT_ORDINARY);
+
+  thd->variables.option_bits = save_option_bits;
+
+  if (str.c_ptr_safe() == buf)
+    return buf;
+  else
+    return "Couldn't fit into buffer";
+}
+
+
+const char* dbug_print_select(SELECT_LEX* sl) {
+  char* buf = dbug_item_print_buf;
+  String str(buf, sizeof(dbug_item_print_buf), &my_charset_bin);
+  str.length(0);
+  if (!sl)
+    return "(SELECT_LEX*)NULL";
+
+  THD* thd = current_thd;
+  ulonglong save_option_bits = thd->variables.option_bits;
+  thd->variables.option_bits &= ~OPTION_QUOTE_SHOW_CREATE;
+
+  sl->print(thd, &str, QT_ORDINARY);
+
+  thd->variables.option_bits = save_option_bits;
+
+  if (str.c_ptr() == buf)
+    return buf;
+  else
+    return "Couldn't fit into buffer";
+}
+
+const char* dbug_print_unit(SELECT_LEX_UNIT* un) {
+  char* buf = dbug_item_print_buf;
+  String str(buf, sizeof(dbug_item_print_buf), &my_charset_bin);
+  str.length(0);
+  if (!un)
+    return "(SELECT_LEX_UNIT*)NULL";
+
+  THD* thd = current_thd;
+  ulonglong save_option_bits = thd->variables.option_bits;
+  thd->variables.option_bits &= ~OPTION_QUOTE_SHOW_CREATE;
+
+  un->print(&str, QT_ORDINARY);
+
+  thd->variables.option_bits = save_option_bits;
+
+  if (str.c_ptr() == buf)
+    return buf;
+  else
+    return "Couldn't fit into buffer";
+}
+
+const char* dbug_print(Item* x) {
+  return dbug_print_item(x);
+}
+const char* dbug_print(SELECT_LEX* x) {
+  return dbug_print_select(x);
+}
+const char* dbug_print(SELECT_LEX_UNIT* x) {
+  return dbug_print_unit(x);
+}
+
+#endif /*DBUG_OFF*/
+
 using std::min;
 using std::max;
 

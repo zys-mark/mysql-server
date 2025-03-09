@@ -974,7 +974,8 @@ btr_create(
 	page_t*			page;
 	page_zip_des_t*		page_zip;
 
-	ut_ad(mtr->is_named_space(space));
+
+    ut_ad(mtr->is_named_space(space));
 	ut_ad(index_id != BTR_FREED_INDEX_ID);
 
 	/* Create the two new segments (one, in the case of an ibuf tree) for

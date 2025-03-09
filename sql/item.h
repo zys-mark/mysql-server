@@ -31,6 +31,14 @@
 #include "table_trigger_field_support.h" // Table_trigger_field_support
 #include "mysql/service_parser.h"
 
+#ifdef DBUG_OFF
+static inline const char* dbug_print_item(Item* item) {
+  return NULL;
+}
+#else
+const char* dbug_print_item(Item* item);
+#endif
+
 class user_var_entry;
 class Json_wrapper;
 
