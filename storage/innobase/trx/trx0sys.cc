@@ -114,6 +114,7 @@ ReadView::check_trx_id_sanity(
 	trx_id_t		id,
 	const table_name_t&	name)
 {
+	DBUG_ENTER("check_trx_id_sanity");
 	if (id >= trx_sys->max_trx_id) {
 
 		ib::warn() << "A transaction id"
@@ -138,6 +139,7 @@ ReadView::check_trx_id_sanity(
 					    " maximum.", table_name);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -160,6 +162,7 @@ trx_in_rw_trx_list(
 /*============*/
 	const trx_t*	in_trx)	/*!< in: transaction */
 {
+	DBUG_ENTER("trx_in_rw_trx_list");
 	const trx_t*	trx;
 
 	/* Non-locking autocommits should not hold any locks. */
@@ -178,7 +181,7 @@ trx_in_rw_trx_list(
 		ut_ad(trx->rsegs.m_redo.rseg != NULL && !trx->read_only);
 	}
 
-	return(trx != 0);
+	DBUG_RETURN(trx != 0);
 }
 #endif /* UNIV_DEBUG */
 
@@ -188,6 +191,7 @@ void
 trx_sys_flush_max_trx_id(void)
 /*==========================*/
 {
+	DBUG_ENTER("trx_sys_flush_max_trx_id");
 	mtr_t		mtr;
 	trx_sysf_t*	sys_header;
 
@@ -204,6 +208,7 @@ trx_sys_flush_max_trx_id(void)
 
 		mtr_commit(&mtr);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -220,13 +225,14 @@ trx_sys_update_mysql_binlog_offset(
 				the trx sys header */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("trx_sys_update_mysql_binlog_offset");
 	trx_sysf_t*	sys_header;
 
 	if (ut_strlen(file_name) >= TRX_SYS_MYSQL_LOG_NAME_LEN) {
 
 		/* We cannot fit the name to the 512 bytes we have reserved */
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	sys_header = trx_sysf_get(mtr);
@@ -264,6 +270,7 @@ trx_sys_update_mysql_binlog_offset(
 			 + TRX_SYS_MYSQL_LOG_OFFSET_LOW,
 			 (ulint)(offset & 0xFFFFFFFFUL),
 			 MLOG_4BYTES, mtr);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -273,6 +280,7 @@ void
 trx_sys_print_mysql_binlog_offset(void)
 /*===================================*/
 {
+	DBUG_ENTER("trx_sys_print_mysql_binlog_offset");
 	trx_sysf_t*	sys_header;
 	mtr_t		mtr;
 	ulint		trx_sys_mysql_bin_log_pos_high;
@@ -288,7 +296,7 @@ trx_sys_print_mysql_binlog_offset(void)
 
 		mtr_commit(&mtr);
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	trx_sys_mysql_bin_log_pos_high = mach_read_from_4(
@@ -305,6 +313,7 @@ trx_sys_print_mysql_binlog_offset(void)
 		+ TRX_SYS_MYSQL_LOG_NAME;
 
 	mtr_commit(&mtr);
+	DBUG_VOID_RETURN;
 }
 
 /****************************************************************//**
@@ -319,6 +328,7 @@ trx_sysf_rseg_find_free(
 	ulint	nth_free_slots)		/*!< in: allocate nth free slot.
 					0 means next free slot. */
 {
+	DBUG_ENTER("trx_sysf_rseg_find_free");
 	ulint		i;
 	trx_sysf_t*	sys_header;
 
@@ -339,12 +349,12 @@ trx_sysf_rseg_find_free(
 			&& trx_sys_is_noredo_rseg_slot(i))) {
 
 			if (found_free_slots++ >= nth_free_slots) {
-				return(i);
+				DBUG_RETURN(i);
 			}
 		}
 	}
 
-	return(ULINT_UNDEFINED);
+	DBUG_RETURN(ULINT_UNDEFINED);
 }
 
 /****************************************************************//**
@@ -356,6 +366,7 @@ trx_sysf_used_slots_for_redo_rseg(
 /*==============================*/
 	mtr_t*	mtr)			/*!< in: mtr */
 {
+	DBUG_ENTER("trx_sysf_used_slots_for_redo_rseg");
 	trx_sysf_t*	sys_header;
 	ulint		n_used = 0;
 
@@ -376,7 +387,7 @@ trx_sysf_used_slots_for_redo_rseg(
 		}
 	}
 
-	return(n_used);
+	DBUG_RETURN(n_used);
 }
 
 /*****************************************************************//**
@@ -388,6 +399,7 @@ trx_sysf_create(
 /*============*/
 	mtr_t*	mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("trx_sysf_create");
 	trx_sysf_t*	sys_header;
 	ulint		slot_no;
 	buf_block_t*	block;
@@ -451,6 +463,7 @@ trx_sysf_create(
 
 	ut_a(slot_no == TRX_SYS_SYSTEM_RSEG_ID);
 	ut_a(page_no == FSP_FIRST_RSEG_PAGE_NO);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -461,6 +474,7 @@ purge_pq_t*
 trx_sys_init_at_db_start(void)
 /*==========================*/
 {
+	DBUG_ENTER("trx_sys_init_at_db_start");
 	purge_pq_t*	purge_queue;
 	trx_sysf_t*	sys_header;
 	ib_uint64_t	rows_to_undo	= 0;
@@ -536,7 +550,7 @@ trx_sys_init_at_db_start(void)
 
 	trx_sys_mutex_exit();
 
-	return(purge_queue);
+	DBUG_RETURN(purge_queue);
 }
 
 /*****************************************************************//**
@@ -545,6 +559,7 @@ void
 trx_sys_create(void)
 /*================*/
 {
+	DBUG_ENTER("trx_sys_create");
 	ut_ad(trx_sys == NULL);
 
 	trx_sys = static_cast<trx_sys_t*>(ut_zalloc_nokey(sizeof(*trx_sys)));
@@ -561,6 +576,7 @@ trx_sys_create(void)
 			mem_key_trx_sys_t_rw_trx_ids));
 
 	new(&trx_sys->rw_trx_set) TrxIdSet();
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -569,6 +585,7 @@ void
 trx_sys_create_sys_pages(void)
 /*==========================*/
 {
+	DBUG_ENTER("trx_sys_create_sys_pages");
 	mtr_t	mtr;
 
 	mtr_start(&mtr);
@@ -576,6 +593,7 @@ trx_sys_create_sys_pages(void)
 	trx_sysf_create(&mtr);
 
 	mtr_commit(&mtr);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -589,6 +607,7 @@ trx_sys_file_format_max_write(
 	const char**	name)		/*!< out: max file format name, can
 					be NULL */
 {
+	DBUG_ENTER("trx_sys_file_format_max_write");
 	mtr_t		mtr;
 	byte*		ptr;
 	buf_block_t*	block;
@@ -614,7 +633,7 @@ trx_sys_file_format_max_write(
 
 	mtr_commit(&mtr);
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /*****************************************************************//**
@@ -625,6 +644,7 @@ ulint
 trx_sys_file_format_max_read(void)
 /*==============================*/
 {
+	DBUG_ENTER("trx_sys_file_format_max_read");
 	mtr_t			mtr;
 	const byte*		ptr;
 	const buf_block_t*	block;
@@ -648,10 +668,10 @@ trx_sys_file_format_max_read(void)
 	if (file_format_id >= FILE_FORMAT_NAME_N) {
 
 		/* Either it has never been tagged, or garbage in it. */
-		return(ULINT_UNDEFINED);
+		DBUG_RETURN(ULINT_UNDEFINED);
 	}
 
-	return((ulint) file_format_id);
+	DBUG_RETURN((ulint) file_format_id);
 }
 
 /*****************************************************************//**
@@ -662,9 +682,10 @@ trx_sys_file_format_id_to_name(
 /*===========================*/
 	const ulint	id)	/*!< in: id of the file format */
 {
+	DBUG_ENTER("trx_sys_file_format_id_to_name");
 	ut_a(id < FILE_FORMAT_NAME_N);
 
-	return(file_format_name_map[id]);
+	DBUG_RETURN(file_format_name_map[id]);
 }
 
 /*****************************************************************//**
@@ -676,6 +697,7 @@ trx_sys_file_format_max_check(
 /*==========================*/
 	ulint	max_format_id)	/*!< in: max format id to check */
 {
+	DBUG_ENTER("trx_sys_file_format_max_check");
 	ulint	format_id;
 
 	/* Check the file format in the tablespace. Do not try to
@@ -708,7 +730,7 @@ trx_sys_file_format_max_check(
 		}
 
 		if (max_format_id <= UNIV_FORMAT_MAX) {
-			return(DB_ERROR);
+			DBUG_RETURN(DB_ERROR);
 		}
 	}
 
@@ -719,7 +741,7 @@ trx_sys_file_format_max_check(
 	file_format_max.id = format_id;
 	file_format_max.name = trx_sys_file_format_id_to_name(format_id);
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /*****************************************************************//**
@@ -733,6 +755,7 @@ trx_sys_file_format_max_set(
 	const char**	name)		/*!< out: max file format name or
 					NULL if not needed. */
 {
+	DBUG_ENTER("trx_sys_file_format_max_set");
 	ibool		ret = FALSE;
 
 	ut_a(format_id <= UNIV_FORMAT_MAX);
@@ -747,7 +770,7 @@ trx_sys_file_format_max_set(
 
 	mutex_exit(&file_format_max.mutex);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /********************************************************************//**
@@ -759,6 +782,7 @@ void
 trx_sys_file_format_tag_init(void)
 /*==============================*/
 {
+	DBUG_ENTER("trx_sys_file_format_tag_init");
 	ulint	format_id;
 
 	format_id = trx_sys_file_format_max_read();
@@ -767,6 +791,7 @@ trx_sys_file_format_tag_init(void)
 	if (format_id == ULINT_UNDEFINED) {
 		trx_sys_file_format_max_set(UNIV_FORMAT_MIN, NULL);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -779,6 +804,7 @@ trx_sys_file_format_max_upgrade(
 	const char**	name,		/*!< out: max file format name */
 	ulint		format_id)	/*!< in: file format identifier */
 {
+	DBUG_ENTER("trx_sys_file_format_max_upgrade");
 	ibool		ret = FALSE;
 
 	ut_a(name);
@@ -794,7 +820,7 @@ trx_sys_file_format_max_upgrade(
 
 	mutex_exit(&file_format_max.mutex);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*****************************************************************//**
@@ -804,7 +830,8 @@ const char*
 trx_sys_file_format_max_get(void)
 /*=============================*/
 {
-	return(file_format_max.name);
+	DBUG_ENTER("trx_sys_file_format_max_get");
+	DBUG_RETURN(file_format_max.name);
 }
 
 /*****************************************************************//**
@@ -813,6 +840,7 @@ void
 trx_sys_file_format_init(void)
 /*==========================*/
 {
+	DBUG_ENTER("trx_sys_file_format_init");
 	mutex_create(LATCH_ID_FILE_FORMAT_MAX, &file_format_max.mutex);
 
 	/* We don't need a mutex here, as this function should only
@@ -821,6 +849,7 @@ trx_sys_file_format_init(void)
 
 	file_format_max.name = trx_sys_file_format_id_to_name(
 		file_format_max.id);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -829,7 +858,9 @@ void
 trx_sys_file_format_close(void)
 /*===========================*/
 {
+	DBUG_ENTER("trx_sys_file_format_close");
 	mutex_free(&file_format_max.mutex);
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************
@@ -842,6 +873,7 @@ trx_sys_create_noredo_rsegs(
 	ulint	n_nonredo_rseg)	/*!< number of non-redo rollback segment
 				to create. */
 {
+	DBUG_ENTER("trx_sys_create_noredo_rsegs");
 	ulint n_created = 0;
 
 	/* Create non-redo rollback segments residing in temp-tablespace.
@@ -860,7 +892,7 @@ trx_sys_create_noredo_rsegs(
 		++n_created;
 	}
 
-	return(n_created);
+	DBUG_RETURN(n_created);
 }
 
 /*********************************************************************
@@ -874,6 +906,7 @@ trx_sys_create_rsegs(
 	ulint	n_tmp_rsegs)	/*!< number of rollback segments reserved for
 				temp-tables. */
 {
+	DBUG_ENTER("trx_sys_create_rsegs");
 	mtr_t	mtr;
 	ulint	n_used;
 	ulint	n_noredo_created;
@@ -883,7 +916,7 @@ trx_sys_create_rsegs(
 	ut_a(n_tmp_rsegs > 0 && n_tmp_rsegs < TRX_SYS_N_RSEGS);
 
 	if (srv_read_only_mode) {
-		return(ULINT_UNDEFINED);
+		DBUG_RETURN(ULINT_UNDEFINED);
 	}
 
 	/* Create non-redo rollback segments. */
@@ -953,7 +986,7 @@ trx_sys_create_rsegs(
 	ib::info() << n_noredo_created << " non-redo rollback segment(s) are"
 		" active.";
 
-	return(n_used);
+	DBUG_RETURN(n_used);
 }
 
 #else /* !UNIV_HOTBACKUP */
@@ -967,6 +1000,7 @@ trx_sys_print_mysql_binlog_offset_from_page(
 				system header page, i.e., page number
 				TRX_SYS_PAGE_NO in the tablespace */
 {
+	DBUG_ENTER("trx_sys_print_mysql_binlog_offset_from_page");
 	const trx_sysf_t*	sys_header;
 
 	sys_header = page + TRX_SYS;
@@ -985,6 +1019,7 @@ trx_sys_print_mysql_binlog_offset_from_page(
 			<< ", file name " << sys_header
 			+ TRX_SYS_MYSQL_LOG_INFO + TRX_SYS_MYSQL_LOG_NAME;
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -1001,6 +1036,7 @@ trx_sys_read_file_format_id(
 	ulint *format_id)      /*!< out: file format of the system table
 				         space */
 {
+	DBUG_ENTER("trx_sys_read_file_format_id");
 	os_file_t	file;
 	bool		success;
 	byte		buf[UNIV_PAGE_SIZE * 2];
@@ -1025,7 +1061,7 @@ trx_sys_read_file_format_id(
 		ib::error() << "mysqlbackup: Error: trying to read system"
 			" tablespace file format, but could not open the"
 			" tablespace file " << pathname << "!";
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	/* Read the page on which file format is stored */
@@ -1045,7 +1081,7 @@ trx_sys_read_file_format_id(
 			" tablespace file " << pathname << "!";
 
 		os_file_close(file);
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 	os_file_close(file);
 
@@ -1057,12 +1093,12 @@ trx_sys_read_file_format_id(
 	if (file_format_id >= FILE_FORMAT_NAME_N) {
 
 		/* Either it has never been tagged, or garbage in it. */
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	}
 
 	*format_id = (ulint) file_format_id;
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /*****************************************************************//**
@@ -1076,6 +1112,7 @@ trx_sys_read_pertable_file_format_id(
 	ulint *format_id)      /*!< out: file format of the per-table
 				         data file */
 {
+	DBUG_ENTER("trx_sys_read_pertable_file_format_id");
 	os_file_t	file;
 	bool		success;
 	byte		buf[UNIV_PAGE_SIZE * 2];
@@ -1101,7 +1138,7 @@ trx_sys_read_pertable_file_format_id(
 			" tablespace format, but could not open the tablespace"
 			" file " << pathname << "!";
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	IORequest	read_req(IORequest::READ);
@@ -1120,7 +1157,7 @@ trx_sys_read_pertable_file_format_id(
 			<< pathname << "!";
 
 		os_file_close(file);
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 	os_file_close(file);
 
@@ -1130,12 +1167,12 @@ trx_sys_read_pertable_file_format_id(
 
 	if (!fsp_flags_is_valid(flags) {
 		/* bad tablespace flags */
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	*format_id = FSP_FLAGS_GET_POST_ANTELOPE(flags);
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 
@@ -1147,12 +1184,13 @@ trx_sys_file_format_id_to_name(
 /*===========================*/
 	const ulint	id)	/*!< in: id of the file format */
 {
+	DBUG_ENTER("trx_sys_file_format_id_to_name");
 	if (!(id < FILE_FORMAT_NAME_N)) {
 		/* unknown id */
-		return("Unknown");
+		DBUG_RETURN("Unknown");
 	}
 
-	return(file_format_name_map[id]);
+	DBUG_RETURN(file_format_name_map[id]);
 }
 
 #endif /* !UNIV_HOTBACKUP */
@@ -1164,6 +1202,7 @@ void
 trx_sys_close(void)
 /*===============*/
 {
+	DBUG_ENTER("trx_sys_close");
 	ut_ad(trx_sys != NULL);
 	ut_ad(srv_shutdown_state == SRV_SHUTDOWN_EXIT_THREADS);
 
@@ -1235,6 +1274,7 @@ trx_sys_close(void)
 	ut_free(trx_sys);
 
 	trx_sys = NULL;
+	DBUG_VOID_RETURN;
 }
 
 /** @brief Convert an undo log to TRX_UNDO_PREPARED state on shutdown.
@@ -1254,6 +1294,7 @@ trx_undo_fake_prepared(
 	const trx_t*	trx,
 	trx_undo_t*	undo)
 {
+	DBUG_ENTER("trx_undo_fake_prepared");
 	ut_ad(srv_force_recovery >= SRV_FORCE_NO_TRX_UNDO);
 	ut_ad(trx_state_eq(trx, TRX_STATE_ACTIVE));
 	ut_ad(trx->is_recovered);
@@ -1262,6 +1303,7 @@ trx_undo_fake_prepared(
 		ut_ad(undo->state == TRX_UNDO_ACTIVE);
 		undo->state = TRX_UNDO_PREPARED;
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************
@@ -1271,6 +1313,7 @@ ulint
 trx_sys_any_active_transactions(void)
 /*=================================*/
 {
+	DBUG_ENTER("trx_sys_any_active_transactions");
 	trx_sys_mutex_enter();
 
 	ulint	total_trx = UT_LIST_GET_LEN(trx_sys->mysql_trx_list);
@@ -1314,7 +1357,7 @@ trx_sys_any_active_transactions(void)
 
 	trx_sys_mutex_exit();
 
-	return(total_trx);
+	DBUG_RETURN(total_trx);
 }
 
 #ifdef UNIV_DEBUG
@@ -1327,6 +1370,7 @@ trx_sys_validate_trx_list_low(
 /*===========================*/
 	trx_ut_list_t*	trx_list)	/*!< in: &trx_sys->rw_trx_list */
 {
+	DBUG_ENTER("trx_sys_validate_trx_list_low");
 	const trx_t*	trx;
 	const trx_t*	prev_trx = NULL;
 
@@ -1342,7 +1386,7 @@ trx_sys_validate_trx_list_low(
 		ut_a(prev_trx == NULL || prev_trx->id > trx->id);
 	}
 
-	return(true);
+	DBUG_RETURN(true);
 }
 
 /*************************************************************//**
@@ -1352,11 +1396,12 @@ bool
 trx_sys_validate_trx_list()
 /*=======================*/
 {
+	DBUG_ENTER("trx_sys_validate_trx_list");
 	ut_ad(trx_sys_mutex_own());
 
 	ut_a(trx_sys_validate_trx_list_low(&trx_sys->rw_trx_list));
 
-	return(true);
+	DBUG_RETURN(true);
 }
 #endif /* UNIV_DEBUG */
 #endif /* !UNIV_HOTBACKUP */

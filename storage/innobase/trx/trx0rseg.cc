@@ -32,6 +32,7 @@ Created 3/26/1996 Heikki Tuuri
 *******************************************************/
 
 #include "trx0rseg.h"
+#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "trx0rseg.ic"
@@ -63,6 +64,7 @@ trx_rseg_header_create(
 	ulint			rseg_slot_no,
 	mtr_t*			mtr)
 {
+	DBUG_ENTER("trx_rseg_header_create");
 	ulint		page_no;
 	trx_rsegf_t*	rsegf;
 	trx_sysf_t*	sys_header;
@@ -79,7 +81,7 @@ trx_rseg_header_create(
 	if (block == NULL) {
 		/* No space left */
 
-		return(FIL_NULL);
+		DBUG_RETURN(FIL_NULL);
 	}
 
 	buf_block_dbg_add_level(block, SYNC_RSEG_HEADER_NEW);
@@ -121,7 +123,7 @@ trx_rseg_header_create(
 			sys_header, rseg_slot_no, page_no, mtr);
 	}
 
-	return(page_no);
+	DBUG_RETURN(page_no);
 }
 
 /***********************************************************************//**
@@ -133,6 +135,7 @@ trx_rseg_mem_free(
 	trx_rseg_t**	rseg_array)	/*!< out: add rseg reference to this
 					central array. */
 {
+	DBUG_ENTER("trx_rseg_mem_free");
 	trx_undo_t*	undo;
 	trx_undo_t*	next_undo;
 
@@ -172,6 +175,7 @@ trx_rseg_mem_free(
 	*((trx_rseg_t**) rseg_array + rseg->id) = NULL;
 
 	ut_free(rseg);
+	DBUG_VOID_RETURN;
 }
 
 /** Creates and initializes a rollback segment object.
@@ -197,6 +201,7 @@ trx_rseg_mem_create(
 	trx_rseg_t**		rseg_array,
 	mtr_t*			mtr)
 {
+	DBUG_ENTER("trx_rseg_mem_create");
 	ulint		len;
 	trx_rseg_t*	rseg;
 	fil_addr_t	node_addr;
@@ -274,7 +279,7 @@ trx_rseg_mem_create(
 		rseg->last_page_no = FIL_NULL;
 	}
 
-	return(rseg);
+	DBUG_RETURN(rseg);
 }
 
 /* Read information from system header page for a rollback segment.
@@ -290,13 +295,14 @@ read_sys_rseg_info(
 	ulint	&space,
 	ulint	&page_no)
 {
+	DBUG_ENTER("read_sys_rseg_info");
 	trx_sysf_t* sys_header = trx_sysf_get(mtr);
 
 	page_no = trx_sysf_rseg_get_page_no(sys_header, rseg_id, mtr);
 
 	if (page_no == FIL_NULL) {
 		space = 0;
-		return (univ_page_size);
+		DBUG_RETURN(univ_page_size);
 	}
 
 	space = trx_sysf_rseg_get_space(sys_header, rseg_id, mtr);
@@ -309,7 +315,7 @@ read_sys_rseg_info(
 		: fil_space_get_page_size(space, &found);
 
 	ut_ad(found);
-	return (page_size);
+	DBUG_RETURN(page_size);
 }
 
 /** Initialize a redo rollback segment and add to purge queue if it has anything
@@ -323,6 +329,7 @@ trx_rseg_initialize(
 	trx_rseg_t**	rseg_array,
 	purge_pq_t*	purge_queue)
 {
+	DBUG_ENTER("trx_rseg_initialize");
 	ut_a(rseg_array[rseg_id] == NULL);
 
 	mtr_t mtr;
@@ -336,7 +343,7 @@ trx_rseg_initialize(
 
 	if (page_no == FIL_NULL) {
 		mtr.commit();
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	trx_rseg_t* rseg = trx_rseg_mem_create(rseg_id, space, page_no,
@@ -345,6 +352,7 @@ trx_rseg_initialize(
 	ut_a(rseg->id == rseg_id);
 
 	mtr.commit();
+	DBUG_VOID_RETURN;
 }
 
 /* Check if any of the redo rollback segment has same space, page reference
@@ -356,6 +364,7 @@ check_duplicate_rseg(
 	ulint	space,
 	ulint	page_no)
 {
+	DBUG_ENTER("check_duplicate_rseg");
 	for (ulint rseg_id = 0; rseg_id < TRX_SYS_N_RSEGS; rseg_id++) {
 		/* Skip over no-redo rollback segments. */
 		if (trx_sys_is_noredo_rseg_slot(rseg_id)) {
@@ -369,10 +378,10 @@ check_duplicate_rseg(
 			ib::info() << "Found duplicate reference rseg: "
 				   << rseg_id << " space: " << space
 				   << " page: " << page_no;
-			return (true);
+			DBUG_RETURN(true);
 		}
 	}
-	return (false);
+	DBUG_RETURN(false);
 }
 
 /** Check if pre-5.7.2 rollback segment has data to be purged.
@@ -384,6 +393,7 @@ static bool is_purge_pending(
 	ulint	rseg_id,
 	bool&	reset_rseg)
 {
+	DBUG_ENTER("is_purge_pending");
 	ut_a(trx_sys_is_noredo_rseg_slot(rseg_id));
 
 	mtr_t mtr;
@@ -399,7 +409,7 @@ static bool is_purge_pending(
 
 	if (page_no == FIL_NULL || !is_system_or_undo_tablespace(space)) {
 		mtr.commit();
-		return (false);
+		DBUG_RETURN(false);
 	}
 
 	/* There is an issue till 5.7.34, which could cause a pre-5.7.2 rseg to
@@ -409,7 +419,7 @@ static bool is_purge_pending(
 		mtr.commit();
 		ib::info() << "Reset pre-5.7.2 rseg: " << rseg_id
 			   << " after duplicate is found.";
-		return (false);
+		DBUG_RETURN(false);
 	}
 
 	trx_rsegf_t* rseg_header =
@@ -425,9 +435,9 @@ static bool is_purge_pending(
 			   << len << ". Recommend slow shutdown with"
 			   << " innodb_fast_shutdown=0 and restart";
 		reset_rseg = false;
-		return (true);
+		DBUG_RETURN(true);
 	}
-	return (false);
+	DBUG_RETURN(false);
 }
 
 /** Rollback segment IDs that needs to be reset on disk. */
@@ -440,6 +450,7 @@ rseg array in trx_sys at a database startup.
 static void trx_rseg_create_instance(
 	purge_pq_t*	purge_queue)
 {
+	DBUG_ENTER("trx_rseg_create_instance");
         /* Initialize redo rollback segments. */
 	for (ulint rseg_id = 0; rseg_id < TRX_SYS_N_RSEGS; rseg_id++) {
                 /* Skip all no-redo segments. Slot-1....Slot-n are reserved for
@@ -483,6 +494,7 @@ static void trx_rseg_create_instance(
 		}
 		ut_a(trx_sys->pending_purge_rseg_array[rseg_id] == NULL);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Reset no-redo rollback segment slot on disk.
@@ -490,6 +502,7 @@ static void trx_rseg_create_instance(
 static void trx_rseg_reset_slot(
 	ulint	rseg_id)
 {
+	DBUG_ENTER("trx_rseg_reset_slot");
 	ut_a(rseg_id < TRX_SYS_N_RSEGS);
 	ut_a(trx_sys_is_noredo_rseg_slot(rseg_id));
 
@@ -501,16 +514,18 @@ static void trx_rseg_reset_slot(
 	trx_sysf_rseg_set_page_no(
                               sys_header, rseg_id, FIL_NULL, &mtr);
 	mtr.commit();
+	DBUG_VOID_RETURN;
 }
 
 void trx_rseg_reset_pending() {
+	DBUG_ENTER("trx_rseg_reset_pending");
 	if (s_pending_reset_rseg_ids.empty()) {
-		return;
+		DBUG_VOID_RETURN;
 
 	} else if (srv_read_only_mode) {
 		ib::warn() << "Could not reset pre-5.7.2 rseg slots"
 			   << " in read-only mode.";
-		return;
+		DBUG_VOID_RETURN;
 	}
         /* Check and reset no-redo rollback segment slots carried forward from
 	pre-5.7.2 with no left-over data to purge. This is a deferred action
@@ -522,6 +537,7 @@ void trx_rseg_reset_pending() {
 		   << " pre-5.7.2 rseg slots.";
 
 	s_pending_reset_rseg_ids.clear();
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************
@@ -534,6 +550,7 @@ trx_rseg_create(
 	ulint	nth_free_slot)	/*!< in: allocate nth free slot.
 				0 means next free slots. */
 {
+	DBUG_ENTER("trx_rseg_create");
 	mtr_t		mtr;
 	ulint		slot_no;
 	trx_rseg_t*	rseg = NULL;
@@ -570,7 +587,7 @@ trx_rseg_create(
 		if (page_no == FIL_NULL) {
 			mtr_commit(&mtr);
 
-			return(rseg);
+			DBUG_RETURN(rseg);
 		}
 
 		sys_header = trx_sysf_get(&mtr);
@@ -588,7 +605,7 @@ trx_rseg_create(
 
 	mtr_commit(&mtr);
 
-	return(rseg);
+	DBUG_RETURN(rseg);
 }
 
 /*********************************************************************//**
@@ -599,9 +616,11 @@ trx_rseg_array_init(
 /*================*/
 	purge_pq_t*	purge_queue)	/*!< in: rseg queue */
 {
-	trx_sys->rseg_history_len = 0;
+	DBUG_ENTER("trx_rseg_array_init");
+    trx_sys->rseg_history_len = 0;
 
-	trx_rseg_create_instance(purge_queue);
+    trx_rseg_create_instance(purge_queue);
+    DBUG_VOID_RETURN;
 }
 
 /********************************************************************
@@ -616,6 +635,7 @@ trx_rseg_get_n_undo_tablespaces(
 	ulint*		space_ids)	/*!< out: array of space ids of
 					UNDO tablespaces */
 {
+	DBUG_ENTER("trx_rseg_get_n_undo_tablespaces");
 	ulint		i;
 	mtr_t		mtr;
 	trx_sysf_t*	sys_header;
@@ -665,5 +685,5 @@ trx_rseg_get_n_undo_tablespaces(
 		std::sort(space_ids, space_ids + n_undo_tablespaces);
 	}
 
-	return(n_undo_tablespaces);
+	DBUG_RETURN(n_undo_tablespaces);
 }
