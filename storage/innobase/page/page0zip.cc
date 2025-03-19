@@ -142,6 +142,7 @@ page_zip_fail_func(
 	const char*	fmt,	/*!< in: printf(3) format string */
 	...)			/*!< in: arguments corresponding to fmt */
 {
+	DBUG_ENTER("page_zip_fail_func");
 	int	res;
 	va_list	ap;
 
@@ -151,7 +152,7 @@ page_zip_fail_func(
 	res = vfprintf(stderr, fmt, ap);
 	va_end(ap);
 
-	return(res);
+	DBUG_RETURN(res);
 }
 /** Wrapper for page_zip_fail_func()
 @param fmt_args in: printf(3) format string and arguments */
@@ -172,6 +173,7 @@ page_zip_empty_size(
 	ulint	n_fields,	/*!< in: number of columns in the index */
 	ulint	zip_size)	/*!< in: compressed page size in bytes */
 {
+	DBUG_ENTER("page_zip_empty_size");
 	lint	size = zip_size
 		/* subtract the page header and the longest
 		uncompressed data needed for one record */
@@ -182,7 +184,7 @@ page_zip_empty_size(
 		   - REC_N_NEW_EXTRA_BYTES/* omitted bytes */)
 		/* subtract the space for page_zip_fields_encode() */
 		- compressBound(static_cast<uLong>(2 * (n_fields + 1)));
-	return(size > 0 ? (ulint) size : 0);
+	DBUG_RETURN(size > 0 ? (ulint) size : 0);
 }
 
 /** Check whether a tuple is too big for compressed table
@@ -194,6 +196,7 @@ page_zip_is_too_big(
 	const dict_index_t*	index,
 	const dtuple_t*		entry)
 {
+	DBUG_ENTER("page_zip_is_too_big");
 	const page_size_t&	page_size =
 		dict_table_page_size(index->table);
 
@@ -208,7 +211,7 @@ page_zip_is_too_big(
 	ut_ad(page_size.is_compressed());
 
 	if (free_space_zip == 0) {
-		return(true);
+		DBUG_RETURN(true);
 	}
 
 	/* Subtract one byte for the encoded heap_no in the
@@ -220,7 +223,7 @@ page_zip_is_too_big(
 	infinite page splits. */
 
 	if (entry->n_fields >= n_uniq
-	    && (REC_NODE_PTR_SIZE
+		&& (REC_NODE_PTR_SIZE
 		+ rec_get_converted_size_comp_prefix(
 			index, entry->fields, n_uniq, NULL)
 		/* On a compressed page, there is
@@ -229,10 +232,10 @@ page_zip_is_too_big(
 		But there is no record header. */
 		- (REC_N_NEW_EXTRA_BYTES - 2)
 		> free_space_zip / 2)) {
-		return(true);
+		DBUG_RETURN(true);
 	}
 
-	return(false);
+	DBUG_RETURN(false);
 }
 #endif /* !UNIV_HOTBACKUP */
 
@@ -246,8 +249,9 @@ page_zip_dir_elems(
 /*===============*/
 	const page_zip_des_t*	page_zip)	/*!< in: compressed page */
 {
+	DBUG_ENTER("page_zip_dir_elems");
 	/* Exclude the page infimum and supremum from the record count. */
-	return(page_dir_get_n_heap(page_zip->data) - PAGE_HEAP_NO_USER_LOW);
+	DBUG_RETURN(page_dir_get_n_heap(page_zip->data) - PAGE_HEAP_NO_USER_LOW);
 }
 
 /*************************************************************//**
@@ -260,7 +264,8 @@ page_zip_dir_size(
 /*==============*/
 	const page_zip_des_t*	page_zip)	/*!< in: compressed page */
 {
-	return(PAGE_ZIP_DIR_SLOT_SIZE * page_zip_dir_elems(page_zip));
+	DBUG_ENTER("page_zip_dir_size");
+	DBUG_RETURN(PAGE_ZIP_DIR_SLOT_SIZE * page_zip_dir_elems(page_zip));
 }
 
 /*************************************************************//**
@@ -274,9 +279,10 @@ page_zip_dir_start_offs(
 	const page_zip_des_t*	page_zip,	/*!< in: compressed page */
 	ulint			n_dense)	/*!< in: directory size */
 {
+	DBUG_ENTER("page_zip_dir_start_offs");
 	ut_ad(n_dense * PAGE_ZIP_DIR_SLOT_SIZE < page_zip_get_size(page_zip));
 
-	return(page_zip_get_size(page_zip) - n_dense * PAGE_ZIP_DIR_SLOT_SIZE);
+	DBUG_RETURN(page_zip_get_size(page_zip) - n_dense * PAGE_ZIP_DIR_SLOT_SIZE);
 }
 
 /*************************************************************//**
@@ -305,10 +311,11 @@ page_zip_dir_user_size(
 /*===================*/
 	const page_zip_des_t*	page_zip)	/*!< in: compressed page */
 {
+	DBUG_ENTER("page_zip_dir_user_size");
 	ulint	size = PAGE_ZIP_DIR_SLOT_SIZE
 		* page_get_n_recs(page_zip->data);
 	ut_ad(size <= page_zip_dir_size(page_zip));
-	return(size);
+	DBUG_RETURN(size);
 }
 
 /*************************************************************//**
@@ -322,16 +329,17 @@ page_zip_dir_find_low(
 	byte*	end,			/*!< in: end of records */
 	ulint	offset)			/*!< in: offset of user record */
 {
+	DBUG_ENTER("page_zip_dir_find_low");
 	ut_ad(slot <= end);
 
 	for (; slot < end; slot += PAGE_ZIP_DIR_SLOT_SIZE) {
 		if ((mach_read_from_2(slot) & PAGE_ZIP_DIR_SLOT_MASK)
-		    == offset) {
-			return(slot);
+			== offset) {
+			DBUG_RETURN(slot);
 		}
 	}
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /*************************************************************//**
@@ -344,13 +352,14 @@ page_zip_dir_find(
 	page_zip_des_t*	page_zip,		/*!< in: compressed page */
 	ulint		offset)			/*!< in: offset of user record */
 {
+	DBUG_ENTER("page_zip_dir_find");
 	byte*	end	= page_zip->data + page_zip_get_size(page_zip);
 
 	ut_ad(page_zip_simple_validate(page_zip));
 
-	return(page_zip_dir_find_low(end - page_zip_dir_user_size(page_zip),
-				     end,
-				     offset));
+	DBUG_RETURN(page_zip_dir_find_low(end - page_zip_dir_user_size(page_zip),
+					 end,
+					 offset));
 }
 
 /*************************************************************//**
@@ -363,13 +372,14 @@ page_zip_dir_find_free(
 	page_zip_des_t*	page_zip,		/*!< in: compressed page */
 	ulint		offset)			/*!< in: offset of user record */
 {
+	DBUG_ENTER("page_zip_dir_find_free");
 	byte*	end	= page_zip->data + page_zip_get_size(page_zip);
 
 	ut_ad(page_zip_simple_validate(page_zip));
 
-	return(page_zip_dir_find_low(end - page_zip_dir_size(page_zip),
-				     end - page_zip_dir_user_size(page_zip),
-				     offset));
+	DBUG_RETURN(page_zip_dir_find_low(end - page_zip_dir_size(page_zip),
+					 end - page_zip_dir_user_size(page_zip),
+					 offset));
 }
 
 /*************************************************************//**
@@ -384,9 +394,10 @@ page_zip_dir_get(
 	ulint			slot)		/*!< in: slot
 						(0=first user record) */
 {
+	DBUG_ENTER("page_zip_dir_get");
 	ut_ad(page_zip_simple_validate(page_zip));
 	ut_ad(slot < page_zip_dir_size(page_zip) / PAGE_ZIP_DIR_SLOT_SIZE);
-	return(mach_read_from_2(page_zip->data + page_zip_get_size(page_zip)
+	DBUG_RETURN(mach_read_from_2(page_zip->data + page_zip_get_size(page_zip)
 				- PAGE_ZIP_DIR_SLOT_SIZE * (slot + 1)));
 }
 
@@ -402,6 +413,7 @@ page_zip_compress_write_log(
 	dict_index_t*		index,	/*!< in: index of the B-tree node */
 	mtr_t*			mtr)	/*!< in: mini-transaction */
 {
+	DBUG_ENTER("page_zip_compress_write_log");
 	byte*	log_ptr;
 	ulint	trailer_size;
 
@@ -410,8 +422,7 @@ page_zip_compress_write_log(
 	log_ptr = mlog_open(mtr, 11 + 2 + 2);
 
 	if (!log_ptr) {
-
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	/* Read the number of user records. */
@@ -435,8 +446,8 @@ page_zip_compress_write_log(
 	ut_a(page_zip->m_end + trailer_size <= page_zip_get_size(page_zip));
 
 	log_ptr = mlog_write_initial_log_record_fast((page_t*) page,
-						     MLOG_ZIP_PAGE_COMPRESS,
-						     log_ptr, mtr);
+							 MLOG_ZIP_PAGE_COMPRESS,
+							 log_ptr, mtr);
 	mach_write_to_2(log_ptr, page_zip->m_end - FIL_PAGE_TYPE);
 	log_ptr += 2;
 	mach_write_to_2(log_ptr, trailer_size);
@@ -449,10 +460,11 @@ page_zip_compress_write_log(
 	/* Write most of the page header, the compressed stream and
 	the modification log. */
 	mlog_catenate_string(mtr, page_zip->data + FIL_PAGE_TYPE,
-			     page_zip->m_end - FIL_PAGE_TYPE);
+				 page_zip->m_end - FIL_PAGE_TYPE);
 	/* Write the uncompressed trailer of the compressed page. */
 	mlog_catenate_string(mtr, page_zip->data + page_zip_get_size(page_zip)
-			     - trailer_size, trailer_size);
+				 - trailer_size, trailer_size);
+	DBUG_VOID_RETURN;
 }
 #endif /* !UNIV_HOTBACKUP */
 
@@ -469,6 +481,7 @@ page_zip_get_n_prev_extern(
 					on a B-tree leaf page */
 	const dict_index_t*	index)	/*!< in: record descriptor */
 {
+	DBUG_ENTER("page_zip_get_n_prev_extern");
 	const page_t*	page	= page_align(rec);
 	ulint		n_ext	= 0;
 	ulint		i;
@@ -486,7 +499,7 @@ page_zip_get_n_prev_extern(
 	ut_ad(heap_no >= PAGE_HEAP_NO_USER_LOW);
 	left = heap_no - PAGE_HEAP_NO_USER_LOW;
 	if (UNIV_UNLIKELY(!left)) {
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	for (i = 0; i < n_recs; i++) {
@@ -495,14 +508,14 @@ page_zip_get_n_prev_extern(
 
 		if (rec_get_heap_no_new(r) < heap_no) {
 			n_ext += rec_get_n_extern_new(r, index,
-						      ULINT_UNDEFINED);
+							  ULINT_UNDEFINED);
 			if (!--left) {
 				break;
 			}
 		}
 	}
 
-	return(n_ext);
+	DBUG_RETURN(n_ext);
 }
 
 /**********************************************************************//**
@@ -515,6 +528,7 @@ page_zip_fixed_field_encode(
 	byte*	buf,	/*!< in: pointer to buffer where to write */
 	ulint	val)	/*!< in: value to write */
 {
+	DBUG_ENTER("page_zip_fixed_field_encode");
 	ut_ad(val >= 2);
 
 	if (UNIV_LIKELY(val < 126)) {
@@ -530,7 +544,7 @@ page_zip_fixed_field_encode(
 		*buf++ = (byte) val;
 	}
 
-	return(buf);
+	DBUG_RETURN(buf);
 }
 
 /**********************************************************************//**
@@ -549,6 +563,7 @@ page_zip_fields_encode(
 					this is a non-leaf page */
 	byte*			buf)	/*!< out: buffer of (n + 1) * 2 bytes */
 {
+	DBUG_ENTER("page_zip_fields_encode");
 	const byte*	buf_start	= buf;
 	ulint		i;
 	ulint		col;
@@ -592,8 +607,8 @@ page_zip_fields_encode(
 			/* fixed-length non-nullable field */
 
 			if (fixed_sum && UNIV_UNLIKELY
-			    (fixed_sum + field->fixed_len
-			     > DICT_MAX_FIXED_COL_LEN)) {
+				(fixed_sum + field->fixed_len
+				 > DICT_MAX_FIXED_COL_LEN)) {
 				/* Write out the length of the
 				preceding non-nullable fields,
 				to avoid exceeding the maximum
@@ -659,7 +674,7 @@ page_zip_fields_encode(
 	}
 
 	ut_ad((ulint) (buf - buf_start) <= (n + 2) * 2);
-	return((ulint) (buf - buf_start));
+	DBUG_RETURN((ulint) (buf - buf_start));
 }
 
 /**********************************************************************//**
@@ -675,6 +690,7 @@ page_zip_dir_encode(
 				out: dense page directory sorted by ascending
 				address (and heap_no) */
 {
+	DBUG_ENTER("page_zip_dir_encode");
 	const byte*	rec;
 	ulint		status;
 	ulint		min_mark;
@@ -690,7 +706,7 @@ page_zip_dir_encode(
 	} else {
 		status = REC_STATUS_NODE_PTR;
 		if (UNIV_UNLIKELY
-		    (mach_read_from_4(page + FIL_PAGE_PREV) == FIL_NULL)) {
+			(mach_read_from_4(page + FIL_PAGE_PREV) == FIL_NULL)) {
 			min_mark = REC_INFO_MIN_REC_FLAG;
 		}
 	}
@@ -776,6 +792,7 @@ page_zip_dir_encode(
 
 	/* Ensure that each heap no occurs at least once. */
 	ut_a(i + PAGE_HEAP_NO_USER_LOW == n_heap);
+	DBUG_VOID_RETURN;
 }
 
 extern "C" {
@@ -814,11 +831,14 @@ page_zip_set_alloc(
 	void*		stream,		/*!< in/out: zlib stream */
 	mem_heap_t*	heap)		/*!< in: memory heap to use */
 {
+	DBUG_ENTER("page_zip_set_alloc");
 	z_stream*	strm = static_cast<z_stream*>(stream);
 
 	strm->zalloc = page_zip_zalloc;
 	strm->zfree = page_zip_free;
 	strm->opaque = heap;
+
+	DBUG_VOID_RETURN;
 }
 
 #if 0 || defined UNIV_DEBUG || defined UNIV_ZIP_DEBUG
@@ -847,13 +867,14 @@ page_zip_compress_deflate(
 	z_streamp	strm,	/*!< in/out: compressed stream for deflate() */
 	int		flush)	/*!< in: deflate() flushing method */
 {
+	DBUG_ENTER("page_zip_compress_deflate");
 	int	status;
 	if (UNIV_UNLIKELY(page_zip_compress_dbg)) {
 		ut_print_buf(stderr, strm->next_in, strm->avail_in);
 	}
 	if (UNIV_LIKELY_NULL(logfile)) {
 		if (fwrite(strm->next_in, 1, strm->avail_in, logfile)
-		    != strm->avail_in) {
+			!= strm->avail_in) {
 			perror("fwrite");
 		}
 	}
@@ -861,7 +882,7 @@ page_zip_compress_deflate(
 	if (UNIV_UNLIKELY(page_zip_compress_dbg)) {
 		fprintf(stderr, " -> %d\n", status);
 	}
-	return(status);
+	DBUG_RETURN(status);
 }
 
 /* Redefine deflate(). */
@@ -899,6 +920,7 @@ page_zip_compress_node_ptrs(
 	byte*		storage,	/*!< in: end of dense page directory */
 	mem_heap_t*	heap)		/*!< in: temporary memory heap */
 {
+	DBUG_ENTER("page_zip_compress_node_ptrs");
 	int	err	= Z_OK;
 	ulint*	offsets = NULL;
 
@@ -941,12 +963,12 @@ page_zip_compress_node_ptrs(
 		ut_ad(!c_stream->avail_in);
 
 		memcpy(storage - REC_NODE_PTR_SIZE
-		       * (rec_get_heap_no_new(rec) - 1),
-		       c_stream->next_in, REC_NODE_PTR_SIZE);
+			   * (rec_get_heap_no_new(rec) - 1),
+			   c_stream->next_in, REC_NODE_PTR_SIZE);
 		c_stream->next_in += REC_NODE_PTR_SIZE;
 	} while (--n_dense);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /**********************************************************************//**
@@ -962,6 +984,7 @@ page_zip_compress_sec(
 					sorted by address */
 	ulint		n_dense)	/*!< in: size of recs[] */
 {
+	DBUG_ENTER("page_zip_compress_sec");
 	int		err	= Z_OK;
 
 	ut_ad(n_dense > 0);
@@ -991,7 +1014,7 @@ page_zip_compress_sec(
 		c_stream->next_in = (byte*) rec;
 	} while (--n_dense);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /**********************************************************************//**
@@ -1015,6 +1038,7 @@ page_zip_compress_clust_ext(
 	ulint*		n_blobs)	/*!< in/out: number of
 					externally stored columns */
 {
+	DBUG_ENTER("page_zip_compress_clust_ext");
 	int	err;
 	ulint	i;
 
@@ -1032,7 +1056,7 @@ page_zip_compress_clust_ext(
 			in uncompressed form. */
 			src = rec_get_nth_field(rec, offsets, i, &len);
 			ut_ad(src + DATA_TRX_ID_LEN
-			      == rec_get_nth_field(rec, offsets,
+				  == rec_get_nth_field(rec, offsets,
 						   i + 1, &len));
 			ut_ad(len == DATA_ROLL_PTR_LEN);
 
@@ -1044,7 +1068,7 @@ page_zip_compress_clust_ext(
 				err = deflate(c_stream, Z_NO_FLUSH);
 				if (UNIV_UNLIKELY(err != Z_OK)) {
 
-					return(err);
+					DBUG_RETURN(err);
 				}
 			}
 
@@ -1052,10 +1076,10 @@ page_zip_compress_clust_ext(
 			ut_ad(c_stream->next_in == src);
 
 			memcpy(storage
-			       - (DATA_TRX_ID_LEN + DATA_ROLL_PTR_LEN)
-			       * (rec_get_heap_no_new(rec) - 1),
-			       c_stream->next_in,
-			       DATA_TRX_ID_LEN + DATA_ROLL_PTR_LEN);
+				   - (DATA_TRX_ID_LEN + DATA_ROLL_PTR_LEN)
+				   * (rec_get_heap_no_new(rec) - 1),
+				   c_stream->next_in,
+				   DATA_TRX_ID_LEN + DATA_ROLL_PTR_LEN);
 
 			c_stream->next_in
 				+= DATA_TRX_ID_LEN + DATA_ROLL_PTR_LEN;
@@ -1073,7 +1097,7 @@ page_zip_compress_clust_ext(
 				err = deflate(c_stream, Z_NO_FLUSH);
 				if (UNIV_UNLIKELY(err != Z_OK)) {
 
-					return(err);
+					DBUG_RETURN(err);
 				}
 			}
 
@@ -1086,24 +1110,24 @@ page_zip_compress_clust_ext(
 			modification log. */
 
 			if (UNIV_UNLIKELY
-			    (c_stream->avail_out
-			     <= BTR_EXTERN_FIELD_REF_SIZE)) {
+				(c_stream->avail_out
+				 <= BTR_EXTERN_FIELD_REF_SIZE)) {
 				/* out of space */
-				return(Z_BUF_ERROR);
+				DBUG_RETURN(Z_BUF_ERROR);
 			}
 
 			ut_ad(*externs == c_stream->next_out
-			      + c_stream->avail_out
-			      + 1/* end of modif. log */);
+				  + c_stream->avail_out
+				  + 1/* end of modif. log */);
 
 			c_stream->next_in
 				+= BTR_EXTERN_FIELD_REF_SIZE;
 
 			/* Skip deleted records. */
 			if (UNIV_LIKELY_NULL
-			    (page_zip_dir_find_low(
-				    storage, deleted,
-				    page_offset(rec)))) {
+				(page_zip_dir_find_low(
+					storage, deleted,
+					page_offset(rec)))) {
 				continue;
 			}
 
@@ -1114,12 +1138,12 @@ page_zip_compress_clust_ext(
 
 			/* Copy the BLOB pointer */
 			memcpy(*externs, c_stream->next_in
-			       - BTR_EXTERN_FIELD_REF_SIZE,
-			       BTR_EXTERN_FIELD_REF_SIZE);
+				   - BTR_EXTERN_FIELD_REF_SIZE,
+				   BTR_EXTERN_FIELD_REF_SIZE);
 		}
 	}
 
-	return(Z_OK);
+	DBUG_RETURN(Z_OK);
 }
 
 /**********************************************************************//**
@@ -1143,6 +1167,7 @@ page_zip_compress_clust(
 	byte*		storage,	/*!< in: end of dense page directory */
 	mem_heap_t*	heap)		/*!< in: temporary memory heap */
 {
+	DBUG_ENTER("page_zip_compress_clust");
 	int	err		= Z_OK;
 	ulint*	offsets		= NULL;
 	/* BTR_EXTERN_FIELD_REF storage */
@@ -1157,7 +1182,7 @@ page_zip_compress_clust(
 		offsets = rec_get_offsets(rec, index, offsets,
 					  ULINT_UNDEFINED, &heap);
 		ut_ad(rec_offs_n_fields(offsets)
-		      == dict_index_get_n_fields(index));
+			  == dict_index_get_n_fields(index));
 		UNIV_MEM_ASSERT_RW(rec, rec_offs_data_size(offsets));
 		UNIV_MEM_ASSERT_RW(rec - rec_offs_extra_size(offsets),
 				   rec_offs_extra_size(offsets));
@@ -1170,8 +1195,7 @@ page_zip_compress_clust(
 		if (c_stream->avail_in) {
 			err = deflate(c_stream, Z_NO_FLUSH);
 			if (UNIV_UNLIKELY(err != Z_OK)) {
-
-				goto func_exit;
+				DBUG_RETURN(err);
 			}
 		}
 		ut_ad(!c_stream->avail_in);
@@ -1193,12 +1217,12 @@ page_zip_compress_clust(
 				deleted, storage, &externs, n_blobs);
 
 			if (UNIV_UNLIKELY(err != Z_OK)) {
-
-				goto func_exit;
+				DBUG_RETURN(err);
 			}
 		} else {
 			ulint		len;
 			const byte*	src;
+
 
 			/* Store trx_id and roll_ptr in uncompressed form. */
 			src = rec_get_nth_field(rec, offsets,
@@ -4439,6 +4463,7 @@ page_zip_dir_delete(
 	const byte*		free)		/*!< in: previous start of
 						the free list */
 {
+	DBUG_ENTER("page_zip_dir_delete");
 	byte*	slot_rec;
 	byte*	slot_free;
 	ulint	n_ext;
@@ -4458,7 +4483,7 @@ page_zip_dir_delete(
 
 	/* This could not be done before page_zip_dir_find(). */
 	page_header_set_field(page, page_zip, PAGE_N_RECS,
-			      (ulint)(page_get_n_recs(page) - 1));
+				  (ulint)(page_get_n_recs(page) - 1));
 
 	if (UNIV_UNLIKELY(!free)) {
 		/* Make the last slot the start of the free list. */
@@ -4521,6 +4546,7 @@ skip_blobs:
 	rec[-REC_N_NEW_EXTRA_BYTES] = 0; /* info_bits and n_owned */
 
 	page_zip_clear_rec(page_zip, rec, index, offsets);
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************************//**
@@ -4532,6 +4558,7 @@ page_zip_dir_add_slot(
 	ulint		is_clustered)	/*!< in: nonzero for clustered index,
 					zero for others */
 {
+	DBUG_ENTER("page_zip_dir_add_slot");
 	ulint	n_dense;
 	byte*	dir;
 	byte*	stored;
@@ -4559,19 +4586,20 @@ page_zip_dir_add_slot(
 		externs = stored
 			- page_zip->n_blobs * BTR_EXTERN_FIELD_REF_SIZE;
 		ASSERT_ZERO(externs - PAGE_ZIP_CLUST_LEAF_SLOT_SIZE,
-			               PAGE_ZIP_CLUST_LEAF_SLOT_SIZE);
+						   PAGE_ZIP_CLUST_LEAF_SLOT_SIZE);
 		memmove(externs - PAGE_ZIP_CLUST_LEAF_SLOT_SIZE,
 			externs, stored - externs);
 	} else {
 		stored = dir
 			- page_zip->n_blobs * BTR_EXTERN_FIELD_REF_SIZE;
 		ASSERT_ZERO(stored - PAGE_ZIP_DIR_SLOT_SIZE,
-			    static_cast<size_t>(PAGE_ZIP_DIR_SLOT_SIZE));
+				static_cast<size_t>(PAGE_ZIP_DIR_SLOT_SIZE));
 	}
 
 	/* Move the uncompressed area backwards to make space
 	for one directory slot. */
 	memmove(stored - PAGE_ZIP_DIR_SLOT_SIZE, stored, dir - stored);
+	DBUG_VOID_RETURN;
 }
 
 /***********************************************************//**
@@ -4585,6 +4613,7 @@ page_zip_parse_write_header(
 	page_t*		page,	/*!< in/out: uncompressed page */
 	page_zip_des_t*	page_zip)/*!< in/out: compressed page */
 {
+	DBUG_ENTER("page_zip_parse_write_header");
 	ulint	offset;
 	ulint	len;
 
@@ -4593,8 +4622,7 @@ page_zip_parse_write_header(
 	ut_ad(!page == !page_zip);
 
 	if (UNIV_UNLIKELY(end_ptr < ptr + (1 + 1))) {
-
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	offset = (ulint) *ptr++;
@@ -4603,18 +4631,15 @@ page_zip_parse_write_header(
 	if (len == 0 || offset + len >= PAGE_DATA) {
 corrupt:
 		recv_sys->found_corrupt_log = TRUE;
-
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	if (end_ptr < ptr + len) {
-
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	if (page) {
 		if (!page_zip) {
-
 			goto corrupt;
 		}
 #ifdef UNIV_ZIP_DEBUG
@@ -4629,7 +4654,7 @@ corrupt:
 #endif /* UNIV_ZIP_DEBUG */
 	}
 
-	return(ptr + len);
+	DBUG_RETURN(ptr + len);
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -4642,6 +4667,7 @@ page_zip_write_header_log(
 	ulint		length,	/*!< in: length of the data */
 	mtr_t*		mtr)	/*!< in: mini-transaction */
 {
+	DBUG_ENTER("page_zip_write_header_log");
 	byte*	log_ptr	= mlog_open(mtr, 11 + 1 + 1);
 	ulint	offset	= page_offset(data);
 
@@ -4654,8 +4680,7 @@ page_zip_write_header_log(
 
 	/* If no logging is requested, we may return now */
 	if (UNIV_UNLIKELY(!log_ptr)) {
-
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	log_ptr = mlog_write_initial_log_record_fast(
@@ -4665,6 +4690,7 @@ page_zip_write_header_log(
 	mlog_close(mtr, log_ptr);
 
 	mlog_catenate_string(mtr, data, length);
+	DBUG_VOID_RETURN;
 }
 #endif /* !UNIV_HOTBACKUP */
 
@@ -4689,6 +4715,7 @@ page_zip_reorganize(
 	dict_index_t*	index,	/*!< in: index of the B-tree node */
 	mtr_t*		mtr)	/*!< in: mini-transaction */
 {
+	DBUG_ENTER("page_zip_reorganize");
 #ifndef UNIV_HOTBACKUP
 	buf_pool_t*	buf_pool	= buf_pool_from_block(block);
 #endif /* !UNIV_HOTBACKUP */
@@ -4737,15 +4764,14 @@ page_zip_reorganize(
 	max_trx_id is use to track which all trxs wrote to the page
 	in parallel but in case of temp-table this can is not needed. */
 	if (!dict_index_is_clust(index)
-	    && !dict_table_is_temporary(index->table)
-	    && page_is_leaf(temp_page)) {
+		&& !dict_table_is_temporary(index->table)
+		&& page_is_leaf(temp_page)) {
 		/* Copy max trx id to recreated page */
 		trx_id_t	max_trx_id = page_get_max_trx_id(temp_page);
 		page_set_max_trx_id(block, NULL, max_trx_id, NULL);
 		ut_ad(max_trx_id != 0);
 	}
 
-	/* Restore logging. */
 	mtr_set_log_mode(mtr, log_mode);
 
 	if (!page_zip_compress(page_zip, page, index,
@@ -4783,9 +4809,9 @@ page_zip_copy_recs(
 	dict_index_t*		index,		/*!< in: index of the B-tree */
 	mtr_t*			mtr)		/*!< in: mini-transaction */
 {
+	DBUG_ENTER("page_zip_copy_recs");
+
 	ut_ad(mtr_memo_contains_page(mtr, page, MTR_MEMO_PAGE_X_FIX)
-	      || dict_table_is_intrinsic(index->table));
-	ut_ad(mtr_memo_contains_page(mtr, src, MTR_MEMO_PAGE_X_FIX)
 	      || dict_table_is_intrinsic(index->table));
 	ut_ad(!dict_index_is_ibuf(index));
 #ifdef UNIV_ZIP_DEBUG
@@ -4872,6 +4898,7 @@ page_zip_parse_compress(
 	page_t*		page,	/*!< out: uncompressed page */
 	page_zip_des_t*	page_zip)/*!< out: compressed page */
 {
+	DBUG_ENTER("page_zip_parse_compress");
 	ulint	size;
 	ulint	trailer_size;
 
@@ -4880,8 +4907,7 @@ page_zip_parse_compress(
 	ut_ad(!page == !page_zip);
 
 	if (UNIV_UNLIKELY(ptr + (2 + 2) > end_ptr)) {
-
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	size = mach_read_from_2(ptr);
@@ -4890,35 +4916,32 @@ page_zip_parse_compress(
 	ptr += 2;
 
 	if (UNIV_UNLIKELY(ptr + 8 + size + trailer_size > end_ptr)) {
-
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	if (page) {
 		if (!page_zip || page_zip_get_size(page_zip) < size) {
 corrupt:
 			recv_sys->found_corrupt_log = TRUE;
-
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 
 		memcpy(page_zip->data + FIL_PAGE_PREV, ptr, 4);
 		memcpy(page_zip->data + FIL_PAGE_NEXT, ptr + 4, 4);
 		memcpy(page_zip->data + FIL_PAGE_TYPE, ptr + 8, size);
 		memset(page_zip->data + FIL_PAGE_TYPE + size, 0,
-		       page_zip_get_size(page_zip) - trailer_size
-		       - (FIL_PAGE_TYPE + size));
+			   page_zip_get_size(page_zip) - trailer_size
+			   - (FIL_PAGE_TYPE + size));
 		memcpy(page_zip->data + page_zip_get_size(page_zip)
-		       - trailer_size, ptr + 8 + size, trailer_size);
+			   - trailer_size, ptr + 8 + size, trailer_size);
 
 		if (UNIV_UNLIKELY(!page_zip_decompress(page_zip, page,
-						       TRUE))) {
-
+							   TRUE))) {
 			goto corrupt;
 		}
 	}
 
-	return(ptr + 8 + size + trailer_size);
+	DBUG_RETURN(ptr + 8 + size + trailer_size);
 }
 
 #endif /* !UNIV_INNOCHECKSUM */
@@ -4938,6 +4961,7 @@ page_zip_calc_checksum(
 	srv_checksum_algorithm_t	algo,
 	bool				use_legacy_big_endian /* = false */)
 {
+	DBUG_ENTER("page_zip_calc_checksum");
 	uint32_t	adler;
 	const Bytef*	s = static_cast<const byte*>(data);
 
@@ -4964,7 +4988,7 @@ page_zip_calc_checksum(
 					s + FIL_PAGE_ARCH_LOG_NO_OR_SPACE_ID,
 					size - FIL_PAGE_ARCH_LOG_NO_OR_SPACE_ID);
 
-			return(crc32);
+			DBUG_RETURN(crc32);
 		}
 	case SRV_CHECKSUM_ALGORITHM_INNODB:
 	case SRV_CHECKSUM_ALGORITHM_STRICT_INNODB:
@@ -4978,16 +5002,16 @@ page_zip_calc_checksum(
 			static_cast<uInt>(size)
 			- FIL_PAGE_ARCH_LOG_NO_OR_SPACE_ID);
 
-		return(adler);
+		DBUG_RETURN(adler);
 	case SRV_CHECKSUM_ALGORITHM_NONE:
 	case SRV_CHECKSUM_ALGORITHM_STRICT_NONE:
-		return(BUF_NO_CHECKSUM_MAGIC);
+		DBUG_RETURN(BUF_NO_CHECKSUM_MAGIC);
 	/* no default so the compiler will emit a warning if new enum
 	is added and not handled here */
 	}
 
 	ut_error;
-	return(0);
+	DBUG_RETURN(0);
 }
 
 /**********************************************************************//**
@@ -5012,6 +5036,7 @@ page_zip_verify_checksum(
 #endif /* UNIV_INNOCHECKSUM */
 )
 {
+	DBUG_ENTER("page_zip_verify_checksum");
 	const unsigned char*	p = static_cast<const unsigned char*>(data)
 		+ FIL_PAGE_SPACE_OR_CHKSUM;
 
@@ -5024,7 +5049,7 @@ page_zip_verify_checksum(
 
 	/* Check if page is empty */
 	if (stored == 0
-	    && *reinterpret_cast<const ib_uint64_t*>(static_cast<const char*>(
+		&& *reinterpret_cast<const ib_uint64_t*>(static_cast<const char*>(
 		data)
 		+ FIL_PAGE_LSN) == 0) {
 		/* make sure that the page is really empty */
@@ -5040,16 +5065,16 @@ page_zip_verify_checksum(
 					" uncorrupted\n", page_no);
 			}
 
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 #else
 		for (ulint i = 0; i < size; i++) {
 			if (*((const char*) data + i) != 0) {
-				return(FALSE);
+				DBUG_RETURN(FALSE);
 			}
 		}
 		/* Empty page */
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 #endif /* UNIV_INNOCHECKSUM */
 	}
 
@@ -5057,7 +5082,7 @@ page_zip_verify_checksum(
 		static_cast<srv_checksum_algorithm_t>(srv_checksum_algorithm);
 
 	if (curr_algo == SRV_CHECKSUM_ALGORITHM_NONE) {
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	}
 
 #ifndef	UNIV_INNOCHECKSUM
@@ -5065,8 +5090,8 @@ page_zip_verify_checksum(
 						   const unsigned char*>
 						   (data) + FIL_PAGE_OFFSET);
 	ulint		space_id = mach_read_from_4(static_cast<
-						    const unsigned char*>
-						    (data) + FIL_PAGE_SPACE_ID);
+							const unsigned char*>
+							(data) + FIL_PAGE_SPACE_ID);
 	const page_id_t	page_id(space_id, page_no);
 #endif	/* UNIV_INNOCHECKSUM */
 
@@ -5099,7 +5124,7 @@ page_zip_verify_checksum(
 	}
 #endif /* UNIV_INNOCHECKSUM */
 	if (stored == calc) {
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	}
 
 	bool	legacy_checksum_checked = false;
@@ -5111,7 +5136,7 @@ page_zip_verify_checksum(
 		if (stored == BUF_NO_CHECKSUM_MAGIC) {
 #ifndef	UNIV_INNOCHECKSUM
 			if (curr_algo
-			    == SRV_CHECKSUM_ALGORITHM_STRICT_CRC32) {
+				== SRV_CHECKSUM_ALGORITHM_STRICT_CRC32) {
 				page_warn_strict_checksum(
 					curr_algo,
 					SRV_CHECKSUM_ALGORITHM_NONE,
@@ -5119,7 +5144,7 @@ page_zip_verify_checksum(
 			}
 #endif	/* UNIV_INNOCHECKSUM */
 
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 
 		/* We need to check whether the stored checksum matches legacy
@@ -5131,7 +5156,7 @@ page_zip_verify_checksum(
 			if (stored == page_zip_calc_checksum(
 				data, size, curr_algo, true)) {
 
-				return(TRUE);
+				DBUG_RETURN(TRUE);
 			}
 			legacy_checksum_checked = true;
 		}
@@ -5141,7 +5166,7 @@ page_zip_verify_checksum(
 
 #ifndef	UNIV_INNOCHECKSUM
 			if (curr_algo
-			    == SRV_CHECKSUM_ALGORITHM_STRICT_CRC32) {
+				== SRV_CHECKSUM_ALGORITHM_STRICT_CRC32) {
 				page_warn_strict_checksum(
 					curr_algo,
 					SRV_CHECKSUM_ALGORITHM_INNODB,
@@ -5149,16 +5174,16 @@ page_zip_verify_checksum(
 			}
 #endif	/* UNIV_INNOCHECKSUM */
 
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 
 		/* If legacy checksum is not checked, do it now. */
 		if (!legacy_checksum_checked
-		    && stored == page_zip_calc_checksum(
+			&& stored == page_zip_calc_checksum(
 			data, size, curr_algo, true)) {
 
 			legacy_big_endian_checksum = true;
-				return(TRUE);
+				DBUG_RETURN(TRUE);
 		}
 
 		break;
@@ -5168,7 +5193,7 @@ page_zip_verify_checksum(
 		if (stored == BUF_NO_CHECKSUM_MAGIC) {
 #ifndef	UNIV_INNOCHECKSUM
 			if (curr_algo
-			    == SRV_CHECKSUM_ALGORITHM_STRICT_INNODB) {
+				== SRV_CHECKSUM_ALGORITHM_STRICT_INNODB) {
 				page_warn_strict_checksum(
 					curr_algo,
 					SRV_CHECKSUM_ALGORITHM_NONE,
@@ -5176,23 +5201,23 @@ page_zip_verify_checksum(
 			}
 #endif	/* UNIV_INNOCHECKSUM */
 
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 
 		if (stored == page_zip_calc_checksum(
 			data, size, SRV_CHECKSUM_ALGORITHM_CRC32)
-		    || stored == page_zip_calc_checksum(
+			|| stored == page_zip_calc_checksum(
 			data, size, SRV_CHECKSUM_ALGORITHM_CRC32, true)) {
 #ifndef	UNIV_INNOCHECKSUM
 			if (curr_algo
-			    == SRV_CHECKSUM_ALGORITHM_STRICT_INNODB) {
+				== SRV_CHECKSUM_ALGORITHM_STRICT_INNODB) {
 				page_warn_strict_checksum(
 					curr_algo,
 					SRV_CHECKSUM_ALGORITHM_CRC32,
 					page_id);
 			}
 #endif	/* UNIV_INNOCHECKSUM */
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 
 		break;
@@ -5200,7 +5225,7 @@ page_zip_verify_checksum(
 
 		if (stored == page_zip_calc_checksum(
 			data, size, SRV_CHECKSUM_ALGORITHM_CRC32)
-		    || stored == page_zip_calc_checksum(
+			|| stored == page_zip_calc_checksum(
 			data, size, SRV_CHECKSUM_ALGORITHM_CRC32, true)) {
 #ifndef	UNIV_INNOCHECKSUM
 			page_warn_strict_checksum(
@@ -5208,7 +5233,7 @@ page_zip_verify_checksum(
 				SRV_CHECKSUM_ALGORITHM_CRC32,
 				page_id);
 #endif	/* UNIV_INNOCHECKSUM */
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 
 		if (stored == page_zip_calc_checksum(
@@ -5220,7 +5245,7 @@ page_zip_verify_checksum(
 				SRV_CHECKSUM_ALGORITHM_INNODB,
 				page_id);
 #endif	/* UNIV_INNOCHECKSUM */
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 
 		break;
@@ -5230,5 +5255,5 @@ page_zip_verify_checksum(
 	is added and not handled here */
 	}
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
