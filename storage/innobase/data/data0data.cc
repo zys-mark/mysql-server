@@ -73,6 +73,7 @@ dtuple_coll_cmp(
 	const dtuple_t*	tuple1,
 	const dtuple_t*	tuple2)
 {
+	DBUG_ENTER("dtuple_coll_cmp");
 	ulint	n_fields;
 	ulint	i;
 	int	cmp;
@@ -94,7 +95,7 @@ dtuple_coll_cmp(
 		cmp = cmp_dfield_dfield(field1, field2);
 	}
 
-	return(cmp);
+	DBUG_RETURN(cmp);
 }
 
 /*********************************************************************//**
@@ -106,10 +107,13 @@ dtuple_set_n_fields(
 	dtuple_t*	tuple,		/*!< in: tuple */
 	ulint		n_fields)	/*!< in: number of fields */
 {
+	DBUG_ENTER("dtuple_set_n_fields");
 	ut_ad(tuple);
 
 	tuple->n_fields = n_fields;
 	tuple->n_fields_cmp = n_fields;
+
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************//**
@@ -121,17 +125,18 @@ dfield_check_typed_no_assert(
 /*=========================*/
 	const dfield_t*	field)	/*!< in: data field */
 {
+	DBUG_ENTER("dfield_check_typed_no_assert");
 	if (dfield_get_type(field)->mtype > DATA_MTYPE_CURRENT_MAX
-	    || dfield_get_type(field)->mtype < DATA_MTYPE_CURRENT_MIN) {
+		|| dfield_get_type(field)->mtype < DATA_MTYPE_CURRENT_MIN) {
 
 		ib::error() << "Data field type "
 			<< dfield_get_type(field)->mtype
 			<< ", len " << dfield_get_len(field);
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /**********************************************************//**
@@ -142,6 +147,7 @@ dtuple_check_typed_no_assert(
 /*=========================*/
 	const dtuple_t*	tuple)	/*!< in: tuple */
 {
+	DBUG_ENTER("dtuple_check_typed_no_assert");
 	const dfield_t*	field;
 	ulint		i;
 
@@ -153,7 +159,7 @@ dump:
 		dtuple_print(stderr, tuple);
 		putc('\n', stderr);
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	for (i = 0; i < dtuple_get_n_fields(tuple); i++) {
@@ -165,7 +171,7 @@ dump:
 		}
 	}
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 #endif /* !UNIV_HOTBACKUP */
 
@@ -178,15 +184,17 @@ dfield_check_typed(
 /*===============*/
 	const dfield_t*	field)	/*!< in: data field */
 {
+	DBUG_ENTER("dfield_check_typed");
+
 	if (dfield_get_type(field)->mtype > DATA_MTYPE_CURRENT_MAX
-	    || dfield_get_type(field)->mtype < DATA_MTYPE_CURRENT_MIN) {
+		|| dfield_get_type(field)->mtype < DATA_MTYPE_CURRENT_MIN) {
 
 		ib::fatal() << "Data field type "
 			<< dfield_get_type(field)->mtype
 			<< ", len " << dfield_get_len(field);
 	}
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /**********************************************************//**
@@ -197,6 +205,8 @@ dtuple_check_typed(
 /*===============*/
 	const dtuple_t*	tuple)	/*!< in: tuple */
 {
+	DBUG_ENTER("dtuple_check_typed");
+
 	const dfield_t*	field;
 	ulint		i;
 
@@ -207,7 +217,7 @@ dtuple_check_typed(
 		ut_a(dfield_check_typed(field));
 	}
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /**********************************************************//**
@@ -219,6 +229,8 @@ dtuple_validate(
 /*============*/
 	const dtuple_t*	tuple)	/*!< in: tuple */
 {
+	DBUG_ENTER("dtuple_validate");
+
 	const dfield_t*	field;
 	ulint		n_fields;
 	ulint		len;
@@ -247,8 +259,8 @@ dtuple_validate(
 			for (j = 0; j < len; j++) {
 
 				data_dummy  += *data; /* fool the compiler not
-						      to optimize out this
-						      code */
+							  to optimize out this
+							  code */
 				data++;
 			}
 #endif /* !UNIV_DEBUG_VALGRIND */
@@ -259,7 +271,7 @@ dtuple_validate(
 
 	ut_a(dtuple_check_typed(tuple));
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 #endif /* UNIV_DEBUG */
 
@@ -271,6 +283,8 @@ dfield_print(
 /*=========*/
 	const dfield_t*	dfield)	/*!< in: dfield */
 {
+	DBUG_ENTER("dfield_print");
+
 	const byte*	data;
 	ulint		len;
 	ulint		i;
@@ -281,7 +295,7 @@ dfield_print(
 	if (dfield_is_null(dfield)) {
 		fputs("NULL", stderr);
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	switch (dtype_get_mtype(dfield_get_type(dfield))) {
@@ -303,6 +317,8 @@ dfield_print(
 	default:
 		ut_error;
 	}
+
+	DBUG_VOID_RETURN;
 }
 
 /*************************************************************//**
@@ -313,6 +329,8 @@ dfield_print_also_hex(
 /*==================*/
 	const dfield_t*	dfield)	/*!< in: dfield */
 {
+	DBUG_ENTER("dfield_print_also_hex");
+
 	const byte*	data;
 	ulint		len;
 	ulint		prtype;
@@ -325,7 +343,7 @@ dfield_print_also_hex(
 	if (dfield_is_null(dfield)) {
 		fputs("NULL", stderr);
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	prtype = dtype_get_prtype(dfield_get_type(dfield));
@@ -462,6 +480,8 @@ print_hex:
 			fputs("(external)", stderr);
 		}
 	}
+
+	DBUG_VOID_RETURN;
 }
 
 /*************************************************************//**
@@ -473,6 +493,8 @@ dfield_print_raw(
 	FILE*		f,		/*!< in: output stream */
 	const dfield_t*	dfield)		/*!< in: dfield */
 {
+	DBUG_ENTER("dfield_print_raw");
+
 	ulint	len	= dfield_get_len(dfield);
 	if (!dfield_is_null(dfield)) {
 		ulint	print_len = ut_min(len, static_cast<ulint>(1000));
@@ -485,6 +507,8 @@ dfield_print_raw(
 	} else {
 		fputs(" SQL NULL", f);
 	}
+
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************//**
@@ -495,6 +519,8 @@ dtuple_print(
 	FILE*		f,	/*!< in: output stream */
 	const dtuple_t*	tuple)	/*!< in: tuple */
 {
+	DBUG_ENTER("dtuple_print");
+
 	ulint		n_fields;
 	ulint		i;
 
@@ -512,6 +538,8 @@ dtuple_print(
 	}
 
 	ut_ad(dtuple_validate(tuple));
+
+	DBUG_VOID_RETURN;
 }
 
 /** Print the contents of a tuple.
@@ -524,6 +552,7 @@ dfield_print(
 	const dfield_t*	field,
 	ulint		n)
 {
+	DBUG_ENTER("dfield_print");
 	for (ulint i = 0; i < n; i++, field++) {
 		const void*	data	= dfield_get_data(field);
 		const ulint	len	= dfield_get_len(field);
@@ -550,6 +579,7 @@ dfield_print(
 			ut_print_buf(o, data, len);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Print the contents of a tuple.
@@ -560,6 +590,8 @@ dtuple_print(
 	std::ostream&	o,
 	const dtuple_t*	tuple)
 {
+	DBUG_ENTER("dtuple_print");
+
 	const ulint	n	= dtuple_get_n_fields(tuple);
 
 	o << "TUPLE (info_bits=" << dtuple_get_info_bits(tuple)
@@ -568,6 +600,8 @@ dtuple_print(
 	dfield_print(o, tuple->fields, n);
 
 	o << "}";
+
+	DBUG_VOID_RETURN;
 }
 
 /**************************************************************//**
@@ -587,6 +621,8 @@ dtuple_convert_big_rec(
 	ulint*		n_ext)	/*!< in/out: number of
 				externally stored columns */
 {
+	DBUG_ENTER("dtuple_convert_big_rec");
+
 	mem_heap_t*	heap;
 	big_rec_t*	vector;
 	dfield_t*	dfield;
@@ -597,7 +633,7 @@ dtuple_convert_big_rec(
 	ulint		local_prefix_len;
 
 	if (!dict_index_is_clust(index)) {
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	if (dict_table_get_format(index->table) < UNIV_FORMAT_B) {
@@ -621,7 +657,7 @@ dtuple_convert_big_rec(
 	}
 
 	heap = mem_heap_create(size + dtuple_get_n_fields(entry)
-			       * sizeof(big_rec_field_t) + 1000);
+				   * sizeof(big_rec_field_t) + 1000);
 
 	vector = big_rec_t::alloc(heap, dtuple_get_n_fields(entry));
 
@@ -632,10 +668,10 @@ dtuple_convert_big_rec(
 	n_fields = 0;
 
 	while (page_zip_rec_needs_ext(rec_get_converted_size(index, entry,
-							     *n_ext),
-				      dict_table_is_comp(index->table),
-				      dict_index_get_n_fields(index),
-				      dict_table_page_size(index->table))) {
+								 *n_ext),
+					  dict_table_is_comp(index->table),
+					  dict_index_get_n_fields(index),
+					  dict_table_page_size(index->table))) {
 
 		ulint			i;
 		ulint			longest		= 0;
@@ -643,7 +679,7 @@ dtuple_convert_big_rec(
 		byte*			data;
 
 		for (i = dict_index_get_n_unique_in_tree(index);
-		     i < dtuple_get_n_fields(entry); i++) {
+			 i < dtuple_get_n_fields(entry); i++) {
 			ulint	savings;
 
 			dfield = dtuple_get_nth_field(entry, i);
@@ -653,11 +689,11 @@ dtuple_convert_big_rec(
 			or short columns */
 
 			if (ifield->fixed_len
-			    || dfield_is_null(dfield)
-			    || dfield_is_ext(dfield)
-			    || dfield_get_len(dfield) <= local_len
-			    || dfield_get_len(dfield)
-			    <= BTR_EXTERN_LOCAL_STORED_MAX_SIZE) {
+				|| dfield_is_null(dfield)
+				|| dfield_is_ext(dfield)
+				|| dfield_get_len(dfield) <= local_len
+				|| dfield_get_len(dfield)
+				<= BTR_EXTERN_LOCAL_STORED_MAX_SIZE) {
 				goto skip_field;
 			}
 
@@ -694,7 +730,7 @@ skip_field:
 
 			mem_heap_free(heap);
 
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 
 		/* Move data from field longest_i to big rec vector.
@@ -727,7 +763,7 @@ skip_field:
 		The BLOB pointers in the record will be initialized after
 		the record and the BLOBs have been written. */
 		UNIV_MEM_ALLOC(data + local_prefix_len,
-			       BTR_EXTERN_FIELD_REF_SIZE);
+				   BTR_EXTERN_FIELD_REF_SIZE);
 #endif
 
 		dfield_set_data(dfield, data, local_len);
@@ -747,12 +783,12 @@ skip_field:
 			upd_field.exp = NULL;
 			upd_field.old_v_val = NULL;
 			dfield_copy(&upd_field.new_val,
-				    dfield->clone(upd->heap));
+					dfield->clone(upd->heap));
 			upd->append(upd_field);
 			ut_ad(upd->is_modified(longest_i));
 
 			ut_ad(upd_field.new_val.len
-			      >= BTR_EXTERN_FIELD_REF_SIZE);
+				  >= BTR_EXTERN_FIELD_REF_SIZE);
 			ut_ad(upd_field.new_val.len == local_len);
 			ut_ad(upd_field.new_val.len == dfield_get_len(dfield));
 		}
@@ -760,7 +796,7 @@ skip_field:
 
 	ut_ad(n_fields == vector->n_fields);
 
-	return(vector);
+	DBUG_RETURN(vector);
 }
 
 /**************************************************************//**
@@ -775,6 +811,8 @@ dtuple_convert_back_big_rec(
 	big_rec_t*	vector)	/*!< in, own: big rec vector; it is
 				freed in this function */
 {
+	DBUG_ENTER("dtuple_convert_back_big_rec");
+
 	big_rec_field_t*		b	= vector->fields;
 	const big_rec_field_t* const	end	= b + vector->n_fields;
 
@@ -801,6 +839,8 @@ dtuple_convert_back_big_rec(
 	}
 
 	mem_heap_free(vector->heap);
+
+	DBUG_VOID_RETURN;
 }
 
 /** Allocate a big_rec_t object in the given memory heap, and for storing
@@ -815,6 +855,7 @@ big_rec_t::alloc(
 	mem_heap_t*	heap,
 	ulint		n_fld)
 {
+	DBUG_ENTER("big_rec_t::alloc");
 	big_rec_t*	rec = static_cast<big_rec_t*>(
 		mem_heap_alloc(heap, sizeof(big_rec_t)));
 
@@ -823,10 +864,10 @@ big_rec_t::alloc(
 	rec->heap = heap;
 	rec->fields = static_cast<big_rec_field_t*>(
 		mem_heap_alloc(heap,
-			       n_fld * sizeof(big_rec_field_t)));
+				   n_fld * sizeof(big_rec_field_t)));
 
 	rec->n_fields = 0;
-	return(rec);
+	DBUG_RETURN(rec);
 }
 
 /** Create a deep copy of this object
@@ -838,6 +879,8 @@ dfield_t*
 dfield_t::clone(
 	mem_heap_t*	heap)
 {
+	DBUG_ENTER("dfield_t::clone");
+
 	const ulint size = len == UNIV_SQL_NULL ? 0 : len;
 	dfield_t* obj = static_cast<dfield_t*>(
 		mem_heap_alloc(heap, sizeof(dfield_t) + size));
@@ -854,6 +897,6 @@ dfield_t::clone(
 		obj->data = 0;
 	}
 
-	return(obj);
+	DBUG_RETURN(obj);
 }
 #endif /* !UNIV_HOTBACKUP */

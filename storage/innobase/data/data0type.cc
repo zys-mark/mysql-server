@@ -65,6 +65,8 @@ dtype_get_at_most_n_mbchars(
 	const char*	str)		/*!< in: the string whose prefix
 					length is being determined */
 {
+	DBUG_ENTER("dtype_get_at_most_n_mbchars");
+
 	ulint	mbminlen = DATA_MBMINLEN(mbminmaxlen);
 	ulint	mbmaxlen = DATA_MBMAXLEN(mbminmaxlen);
 
@@ -73,18 +75,16 @@ dtype_get_at_most_n_mbchars(
 
 	if (mbminlen != mbmaxlen) {
 		ut_a(!(prefix_len % mbmaxlen));
-		return(innobase_get_at_most_n_mbchars(
+		DBUG_RETURN(innobase_get_at_most_n_mbchars(
 			dtype_get_charset_coll(prtype),
 			prefix_len, data_len, str));
 	}
 
 	if (prefix_len < data_len) {
-
-		return(prefix_len);
-
+		DBUG_RETURN(prefix_len);
 	}
 
-	return(data_len);
+	DBUG_RETURN(data_len);
 }
 #endif /* UNIV_HOTBACKUP */
 
@@ -97,14 +97,16 @@ dtype_is_string_type(
 /*=================*/
 	ulint	mtype)	/*!< in: InnoDB main data type code: DATA_CHAR, ... */
 {
-	if (mtype <= DATA_BLOB
-	    || mtype == DATA_MYSQL
-	    || mtype == DATA_VARMYSQL) {
+	DBUG_ENTER("dtype_is_string_type");
 
-		return(TRUE);
+	if (mtype <= DATA_BLOB
+		|| mtype == DATA_MYSQL
+		|| mtype == DATA_VARMYSQL) {
+
+		DBUG_RETURN(TRUE);
 	}
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /*********************************************************************//**
@@ -118,14 +120,16 @@ dtype_is_binary_string_type(
 	ulint	mtype,	/*!< in: main data type */
 	ulint	prtype)	/*!< in: precise type */
 {
-	if ((mtype == DATA_FIXBINARY)
-	    || (mtype == DATA_BINARY)
-	    || (mtype == DATA_BLOB && (prtype & DATA_BINARY_TYPE))) {
+	DBUG_ENTER("dtype_is_binary_string_type");
 
-		return(TRUE);
+	if ((mtype == DATA_FIXBINARY)
+		|| (mtype == DATA_BINARY)
+		|| (mtype == DATA_BLOB && (prtype & DATA_BINARY_TYPE))) {
+
+		DBUG_RETURN(TRUE);
 	}
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /*********************************************************************//**
@@ -140,13 +144,15 @@ dtype_is_non_binary_string_type(
 	ulint	mtype,	/*!< in: main data type */
 	ulint	prtype)	/*!< in: precise type */
 {
-	if (dtype_is_string_type(mtype) == TRUE
-	    && dtype_is_binary_string_type(mtype, prtype) == FALSE) {
+	DBUG_ENTER("dtype_is_non_binary_string_type");
 
-		return(TRUE);
+	if (dtype_is_string_type(mtype) == TRUE
+		&& dtype_is_binary_string_type(mtype, prtype) == FALSE) {
+
+		DBUG_RETURN(TRUE);
 	}
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /*********************************************************************//**
@@ -160,10 +166,12 @@ dtype_form_prtype(
 				DATA_BINARY_TYPE etc. */
 	ulint	charset_coll)	/*!< in: MySQL charset-collation code */
 {
+	DBUG_ENTER("dtype_form_prtype");
+
 	ut_a(old_prtype < 256 * 256);
 	ut_a(charset_coll <= MAX_CHAR_COLL_NUM);
 
-	return(old_prtype + (charset_coll << 16));
+	DBUG_RETURN(old_prtype + (charset_coll << 16));
 }
 
 /*********************************************************************//**
@@ -174,6 +182,8 @@ dtype_validate(
 /*===========*/
 	const dtype_t*	type)	/*!< in: type struct to validate */
 {
+	DBUG_ENTER("dtype_validate");
+
 	ut_a(type);
 	ut_a(type->mtype >= DATA_VARCHAR);
 	ut_a(type->mtype <= DATA_MTYPE_MAX);
@@ -186,7 +196,7 @@ dtype_validate(
 	ut_a(dtype_get_mbminlen(type) <= dtype_get_mbmaxlen(type));
 #endif /* !UNIV_HOTBACKUP */
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -197,6 +207,8 @@ dtype_print(
 /*========*/
 	const dtype_t*	type)	/*!< in: type */
 {
+	DBUG_ENTER("dtype_print");
+
 	ulint	mtype;
 	ulint	prtype;
 	ulint	len;
@@ -275,8 +287,8 @@ dtype_print(
 	len = type->len;
 
 	if ((type->mtype == DATA_SYS)
-	    || (type->mtype == DATA_VARCHAR)
-	    || (type->mtype == DATA_CHAR)) {
+		|| (type->mtype == DATA_VARCHAR)
+		|| (type->mtype == DATA_CHAR)) {
 		putc(' ', stderr);
 		if (prtype == DATA_ROW_ID) {
 			fputs("DATA_ROW_ID", stderr);
@@ -307,5 +319,7 @@ dtype_print(
 	}
 
 	fprintf(stderr, " len %lu", (ulong) len);
+
+	DBUG_VOID_RETURN;
 }
 #endif /* !UNIV_HOTBACKUP */
