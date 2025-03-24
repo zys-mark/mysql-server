@@ -113,6 +113,8 @@ dict_mem_table_create(
 	ulint		flags,	/*!< in: table flags */
 	ulint		flags2)	/*!< in: table flags2 */
 {
+	DBUG_ENTER("dict_mem_table_create");
+
 	dict_table_t*	table;
 	mem_heap_t*	heap;
 
@@ -171,8 +173,8 @@ dict_mem_table_create(
 	/* If the table has an FTS index or we are in the process
 	of building one, create the table->fts */
 	if (dict_table_has_fts_index(table)
-	    || DICT_TF2_FLAG_IS_SET(table, DICT_TF2_FTS_HAS_DOC_ID)
-	    || DICT_TF2_FLAG_IS_SET(table, DICT_TF2_FTS_ADD_DOC_ID)) {
+		|| DICT_TF2_FLAG_IS_SET(table, DICT_TF2_FTS_HAS_DOC_ID)
+		|| DICT_TF2_FLAG_IS_SET(table, DICT_TF2_FTS_ADD_DOC_ID)) {
 		table->fts = fts_create(table);
 		table->fts->cache = fts_cache_create(table);
 	} else {
@@ -187,7 +189,7 @@ dict_mem_table_create(
 	new(&table->foreign_set) dict_foreign_set();
 	new(&table->referenced_set) dict_foreign_set();
 
-	return(table);
+	DBUG_RETURN(table);
 }
 
 /****************************************************************//**
@@ -197,13 +199,14 @@ dict_mem_table_free(
 /*================*/
 	dict_table_t*	table)		/*!< in: table */
 {
+	DBUG_ENTER("dict_mem_table_free");
 	ut_ad(table);
 	ut_ad(table->magic_n == DICT_TABLE_MAGIC_N);
 	ut_d(table->cached = FALSE);
 
 	if (dict_table_has_fts_index(table)
-	    || DICT_TF2_FLAG_IS_SET(table, DICT_TF2_FTS_HAS_DOC_ID)
-	    || DICT_TF2_FLAG_IS_SET(table, DICT_TF2_FTS_ADD_DOC_ID)) {
+		|| DICT_TF2_FLAG_IS_SET(table, DICT_TF2_FTS_HAS_DOC_ID)
+		|| DICT_TF2_FLAG_IS_SET(table, DICT_TF2_FTS_ADD_DOC_ID)) {
 		if (table->fts) {
 			fts_optimize_remove_table(table);
 
@@ -238,7 +241,9 @@ dict_mem_table_free(
 	}
 
 	mem_heap_free(table->heap);
-        table = NULL;
+		table = NULL;
+
+	DBUG_VOID_RETURN;
 }
 
 /****************************************************************//**
@@ -301,6 +306,8 @@ dict_mem_table_add_col(
 	ulint		prtype,	/*!< in: precise type */
 	ulint		len)	/*!< in: precision */
 {
+	DBUG_ENTER("dict_mem_table_add_col");
+
 	dict_col_t*	col;
 	ulint		i;
 
@@ -327,12 +334,14 @@ dict_mem_table_add_col(
 		}
 
 		table->col_names = dict_add_col_name(table->col_names,
-						     i, name, heap);
+							 i, name, heap);
 	}
 
 	col = dict_table_get_nth_col(table, i);
 
 	dict_mem_fill_column_struct(col, i, mtype, prtype, len);
+
+	DBUG_VOID_RETURN;
 }
 
 /** Adds a virtual column definition to a table.
@@ -360,6 +369,8 @@ dict_mem_table_add_v_col(
 	ulint		pos,
 	ulint		num_base)
 {
+	DBUG_ENTER("dict_mem_table_add_v_col");
+
 	dict_v_col_t*	v_col;
 	ulint		i;
 
@@ -387,7 +398,7 @@ dict_mem_table_add_v_col(
 		}
 
 		table->v_col_names = dict_add_col_name(table->v_col_names,
-						       i, name, heap);
+							   i, name, heap);
 	}
 
 	v_col = dict_table_get_nth_v_col(table, i);
@@ -408,7 +419,7 @@ dict_mem_table_add_v_col(
 	/* Initialize the index list for virtual columns */
 	v_col->v_indexes = UT_NEW_NOKEY(dict_v_idx_list());
 
-	return(v_col);
+	DBUG_RETURN(v_col);
 }
 
 /** Adds a stored column definition to a table.
@@ -419,6 +430,8 @@ dict_mem_table_add_s_col(
 	dict_table_t*	table,
 	ulint		num_base)
 {
+	DBUG_ENTER("dict_mem_table_add_s_col");
+
 	ulint	i = table->n_def - 1;
 	dict_col_t*	col = dict_table_get_nth_col(table, i);
 	dict_s_col_t	s_col;
@@ -441,6 +454,8 @@ dict_mem_table_add_s_col(
 
 	s_col.num_base = num_base;
 	table->s_cols->push_back(s_col);
+
+	DBUG_VOID_RETURN;
 }
 
 
@@ -620,10 +635,12 @@ dict_mem_table_col_rename(
 	bool		is_virtual)
 				/*!< in: if this is a virtual column */
 {
+	DBUG_ENTER("dict_mem_table_col_rename");
+
 	const char*	s = is_virtual ? table->v_col_names : table->col_names;
 
 	ut_ad((!is_virtual && nth_col < table->n_def)
-	       || (is_virtual && nth_col < table->n_v_def));
+		   || (is_virtual && nth_col < table->n_v_def));
 
 	for (ulint i = 0; i < nth_col; i++) {
 		size_t	len = strlen(s);
@@ -635,9 +652,10 @@ dict_mem_table_col_rename(
 	Proceed with the renaming anyway. */
 	ut_ad(!strcmp(from, s));
 
-
 	dict_mem_table_col_rename_low(table, static_cast<unsigned>(nth_col),
-				      to, s, is_virtual);
+					  to, s, is_virtual);
+
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************************//**
@@ -653,6 +671,8 @@ dict_mem_fill_column_struct(
 	ulint		prtype,		/*!< in: precise type */
 	ulint		col_len)	/*!< in: column length */
 {
+	DBUG_ENTER("dict_mem_fill_column_struct");
+
 #ifndef UNIV_HOTBACKUP
 	ulint	mbminlen;
 	ulint	mbmaxlen;
@@ -665,9 +685,11 @@ dict_mem_fill_column_struct(
 	column->prtype = (unsigned int) prtype;
 	column->len = (unsigned int) col_len;
 #ifndef UNIV_HOTBACKUP
-        dtype_get_mblen(mtype, prtype, &mbminlen, &mbmaxlen);
+	dtype_get_mblen(mtype, prtype, &mbminlen, &mbmaxlen);
 	dict_col_set_mbminmaxlen(column, mbminlen, mbmaxlen);
 #endif /* !UNIV_HOTBACKUP */
+
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************************//**
@@ -685,6 +707,8 @@ dict_mem_index_create(
 					DICT_CLUSTERED, ... ORed */
 	ulint		n_fields)	/*!< in: number of fields */
 {
+	DBUG_ENTER("dict_mem_index_create");
+
 	dict_index_t*	index;
 	mem_heap_t*	heap;
 
@@ -707,11 +731,11 @@ dict_mem_index_create(
 						heap,
 						sizeof(*index->rtr_track)));
 		mutex_create(LATCH_ID_RTR_ACTIVE_MUTEX,
-			     &index->rtr_track->rtr_active_mutex);
+				 &index->rtr_track->rtr_active_mutex);
 		index->rtr_track->rtr_active = UT_NEW_NOKEY(rtr_info_active());
 	}
 
-	return(index);
+	DBUG_RETURN(index);
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -751,6 +775,8 @@ dict_mem_foreign_table_name_lookup_set(
 	dict_foreign_t*	foreign,	/*!< in/out: foreign struct */
 	ibool		do_alloc)	/*!< in: is an alloc needed */
 {
+	DBUG_ENTER("dict_mem_foreign_table_name_lookup_set");
+
 	if (innobase_get_lower_case_table_names() == 2) {
 		if (do_alloc) {
 			ulint	len;
@@ -762,12 +788,14 @@ dict_mem_foreign_table_name_lookup_set(
 					mem_heap_alloc(foreign->heap, len));
 		}
 		strcpy(foreign->foreign_table_name_lookup,
-		       foreign->foreign_table_name);
+			   foreign->foreign_table_name);
 		innobase_casedn_str(foreign->foreign_table_name_lookup);
 	} else {
 		foreign->foreign_table_name_lookup
 			= foreign->foreign_table_name;
 	}
+
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************************//**
@@ -781,6 +809,8 @@ dict_mem_referenced_table_name_lookup_set(
 	dict_foreign_t*	foreign,	/*!< in/out: foreign struct */
 	ibool		do_alloc)	/*!< in: is an alloc needed */
 {
+	DBUG_ENTER("dict_mem_referenced_table_name_lookup_set");
+
 	if (innobase_get_lower_case_table_names() == 2) {
 		if (do_alloc) {
 			ulint	len;
@@ -792,12 +822,14 @@ dict_mem_referenced_table_name_lookup_set(
 					mem_heap_alloc(foreign->heap, len));
 		}
 		strcpy(foreign->referenced_table_name_lookup,
-		       foreign->referenced_table_name);
+			   foreign->referenced_table_name);
 		innobase_casedn_str(foreign->referenced_table_name_lookup);
 	} else {
 		foreign->referenced_table_name_lookup
 			= foreign->referenced_table_name;
 	}
+
+	DBUG_VOID_RETURN;
 }
 
 /** Fill the virtual column set with virtual column information
@@ -916,12 +948,14 @@ Reason for being dependent are
 @param[in,out]  foreign foreign key information. */
 void
 dict_mem_foreign_fill_vcol_set(
-        dict_foreign_t* foreign)
+	dict_foreign_t* foreign)
 {
+	DBUG_ENTER("dict_mem_foreign_fill_vcol_set");
+
 	ulint	type = foreign->type;
 
 	if (type == 0) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	for (ulint i = 0; i < foreign->n_fields; i++) {
@@ -939,6 +973,8 @@ dict_mem_foreign_fill_vcol_set(
 			foreign->foreign_table,
 			&foreign->v_cols);
 	}
+
+	DBUG_VOID_RETURN;
 }
 
 /** Fill virtual columns set in each fk constraint present in the table.
@@ -947,6 +983,8 @@ void
 dict_mem_table_fill_foreign_vcol_set(
 	dict_table_t*	table)
 {
+	DBUG_ENTER("dict_mem_table_fill_foreign_vcol_set");
+
 	dict_foreign_set	fk_set = table->foreign_set;
 	dict_foreign_t*		foreign;
 
@@ -956,6 +994,8 @@ dict_mem_table_fill_foreign_vcol_set(
 
 		dict_mem_foreign_fill_vcol_set(foreign);
 	}
+
+	DBUG_VOID_RETURN;
 }
 
 /** Free the vcol_set from all foreign key constraint on the table.
@@ -964,6 +1004,8 @@ void
 dict_mem_table_free_foreign_vcol_set(
 	dict_table_t*	table)
 {
+	DBUG_ENTER("dict_mem_table_free_foreign_vcol_set");
+
 	dict_foreign_set	fk_set = table->foreign_set;
 	dict_foreign_t*		foreign;
 
@@ -977,6 +1019,8 @@ dict_mem_table_free_foreign_vcol_set(
 			foreign->v_cols = NULL;
 		}
 	}
+
+	DBUG_VOID_RETURN;
 }
 
 #endif /* !UNIV_HOTBACKUP */
@@ -994,6 +1038,8 @@ dict_mem_index_add_field(
 					in a MySQL index like
 					INDEX (textcol(25)) */
 {
+	DBUG_ENTER("dict_mem_index_add_field");
+
 	dict_field_t*	field;
 
 	ut_ad(index);
@@ -1005,6 +1051,8 @@ dict_mem_index_add_field(
 
 	field->name = name;
 	field->prefix_len = (unsigned int) prefix_len;
+
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************************//**
@@ -1014,6 +1062,8 @@ dict_mem_index_free(
 /*================*/
 	dict_index_t*	index)	/*!< in: index */
 {
+	DBUG_ENTER("dict_mem_index_free");
+
 	ut_ad(index);
 	ut_ad(index->magic_n == DICT_INDEX_MAGIC_N);
 
@@ -1024,7 +1074,7 @@ dict_mem_index_free(
 		rtr_info_t*			rtr_info;
 
 		for (it = index->rtr_track->rtr_active->begin();
-		     it != index->rtr_track->rtr_active->end(); ++it) {
+			 it != index->rtr_track->rtr_active->end(); ++it) {
 			rtr_info = *it;
 
 			rtr_info->index = NULL;
@@ -1037,6 +1087,8 @@ dict_mem_index_free(
 
 	dict_index_remove_from_v_col_list(index);
 	mem_heap_free(index->heap);
+
+	DBUG_VOID_RETURN;
 }
 
 /** Create a temporary tablename like "#sql-ibtid-inc where
@@ -1057,6 +1109,8 @@ dict_mem_create_temporary_tablename(
 	const char*	dbtab,
 	table_id_t	id)
 {
+	DBUG_ENTER("dict_mem_create_temporary_tablename");
+
 	size_t		size;
 	char*		name;
 	const char*	dbend   = strchr(dbtab, '/');
@@ -1070,16 +1124,18 @@ dict_mem_create_temporary_tablename(
 	name = static_cast<char*>(mem_heap_alloc(heap, size));
 	memcpy(name, dbtab, dblen);
 	ut_snprintf(name + dblen, size - dblen,
-		    TEMP_FILE_PREFIX_INNODB UINT64PF "-" UINT32PF,
-		    id, dict_temp_file_num);
+			TEMP_FILE_PREFIX_INNODB UINT64PF "-" UINT32PF,
+			id, dict_temp_file_num);
 
-	return(name);
+	DBUG_RETURN(name);
 }
 
 /** Initialize dict memory variables */
 void
 dict_mem_init(void)
 {
+	DBUG_ENTER("dict_mem_init");
+
 	/* Initialize a randomly distributed temporary file number */
 	ib_uint32_t	now = static_cast<ib_uint32_t>(ut_time());
 
@@ -1090,6 +1146,8 @@ dict_mem_init(void)
 	DBUG_PRINT("dict_mem_init",
 		   ("Starting Temporary file number is " UINT32PF,
 		   dict_temp_file_num));
+
+	DBUG_VOID_RETURN;
 }
 
 /** Validate the search order in the foreign key set.
@@ -1099,20 +1157,22 @@ bool
 dict_foreign_set_validate(
 	const dict_foreign_set&	fk_set)
 {
+	DBUG_ENTER("dict_foreign_set_validate");
+
 	dict_foreign_not_exists	not_exists(fk_set);
 
 	dict_foreign_set::iterator it = std::find_if(
 		fk_set.begin(), fk_set.end(), not_exists);
 
 	if (it == fk_set.end()) {
-		return(true);
+		DBUG_RETURN(true);
 	}
 
 	dict_foreign_t*	foreign = *it;
 	std::cerr << "Foreign key lookup failed: " << *foreign;
 	std::cerr << fk_set;
 	ut_ad(0);
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /** Validate the search order in the foreign key sets of the table
@@ -1123,8 +1183,10 @@ bool
 dict_foreign_set_validate(
 	const dict_table_t&	table)
 {
-	return(dict_foreign_set_validate(table.foreign_set)
-	       && dict_foreign_set_validate(table.referenced_set));
+	DBUG_ENTER("dict_foreign_set_validate");
+
+	DBUG_RETURN(dict_foreign_set_validate(table.foreign_set)
+		   && dict_foreign_set_validate(table.referenced_set));
 }
 
 std::ostream&

@@ -57,16 +57,17 @@ dict_hdr_get(
 /*=========*/
 	mtr_t*	mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("dict_hdr_get");
 	buf_block_t*	block;
 	dict_hdr_t*	header;
 
 	block = buf_page_get(page_id_t(DICT_HDR_SPACE, DICT_HDR_PAGE_NO),
-			     univ_page_size, RW_X_LATCH, mtr);
+				 univ_page_size, RW_X_LATCH, mtr);
 	header = DICT_HDR + buf_block_get_frame(block);
 
 	buf_block_dbg_add_level(block, SYNC_DICT_HEADER);
 
-	return(header);
+	DBUG_RETURN(header);
 }
 
 /**********************************************************************//**
@@ -85,6 +86,7 @@ dict_hdr_get_new_id(
 						object is NULL
 						then disable-redo */
 {
+	DBUG_ENTER("dict_hdr_get_new_id");
 	dict_hdr_t*	dict_hdr;
 	ib_id_t		id;
 	mtr_t		mtr;
@@ -148,6 +150,7 @@ dict_hdr_get_new_id(
 	}
 
 	mtr_commit(&mtr);
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************************//**
@@ -157,6 +160,7 @@ void
 dict_hdr_flush_row_id(void)
 /*=======================*/
 {
+	DBUG_ENTER("dict_hdr_flush_row_id");
 	dict_hdr_t*	dict_hdr;
 	row_id_t	id;
 	mtr_t		mtr;
@@ -172,6 +176,7 @@ dict_hdr_flush_row_id(void)
 	mlog_write_ull(dict_hdr + DICT_HDR_ROW_ID, id, &mtr);
 
 	mtr_commit(&mtr);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -288,6 +293,7 @@ dberr_t
 dict_boot(void)
 /*===========*/
 {
+	DBUG_ENTER("dict_boot");
 	dict_table_t*	table;
 	dict_index_t*	index;
 	dict_hdr_t*	dict_hdr;
@@ -337,7 +343,7 @@ dict_boot(void)
 
 	dict_sys->row_id = DICT_HDR_ROW_ID_WRITE_MARGIN
 		+ ut_uint64_align_up(mach_read_from_8(dict_hdr + DICT_HDR_ROW_ID),
-				     DICT_HDR_ROW_ID_WRITE_MARGIN);
+					 DICT_HDR_ROW_ID_WRITE_MARGIN);
 
 	/* Insert into the dictionary cache the descriptions of the basic
 	system tables */
@@ -345,7 +351,7 @@ dict_boot(void)
 	table = dict_mem_table_create("SYS_TABLES", DICT_HDR_SPACE, 8, 0, 0, 0);
 
 	dict_mem_table_add_col(table, heap, "NAME", DATA_BINARY, 0,
-			       MAX_FULL_NAME_LEN);
+				   MAX_FULL_NAME_LEN);
 	dict_mem_table_add_col(table, heap, "ID", DATA_BINARY, 0, 8);
 	/* ROW_FORMAT = (N_COLS >> 31) ? COMPACT : REDUNDANT */
 	dict_mem_table_add_col(table, heap, "N_COLS", DATA_INT, 0, 4);
@@ -367,8 +373,8 @@ dict_boot(void)
 	mem_heap_empty(heap);
 
 	index = dict_mem_index_create("SYS_TABLES", "CLUST_IND",
-				      DICT_HDR_SPACE,
-				      DICT_UNIQUE | DICT_CLUSTERED, 1);
+					  DICT_HDR_SPACE,
+					  DICT_UNIQUE | DICT_CLUSTERED, 1);
 
 	dict_mem_index_add_field(index, "NAME", 0);
 
@@ -376,27 +382,27 @@ dict_boot(void)
 
 	error = dict_index_add_to_cache(table, index,
 					mtr_read_ulint(dict_hdr
-						       + DICT_HDR_TABLES,
-						       MLOG_4BYTES, &mtr),
+							   + DICT_HDR_TABLES,
+							   MLOG_4BYTES, &mtr),
 					FALSE);
 	ut_a(error == DB_SUCCESS);
 
 	/*-------------------------*/
 	index = dict_mem_index_create("SYS_TABLES", "ID_IND",
-				      DICT_HDR_SPACE, DICT_UNIQUE, 1);
+					  DICT_HDR_SPACE, DICT_UNIQUE, 1);
 	dict_mem_index_add_field(index, "ID", 0);
 
 	index->id = DICT_TABLE_IDS_ID;
 	error = dict_index_add_to_cache(table, index,
 					mtr_read_ulint(dict_hdr
-						       + DICT_HDR_TABLE_IDS,
-						       MLOG_4BYTES, &mtr),
+							   + DICT_HDR_TABLE_IDS,
+							   MLOG_4BYTES, &mtr),
 					FALSE);
 	ut_a(error == DB_SUCCESS);
 
 	/*-------------------------*/
 	table = dict_mem_table_create("SYS_COLUMNS", DICT_HDR_SPACE,
-				      7, 0, 0, 0);
+					  7, 0, 0, 0);
 
 	dict_mem_table_add_col(table, heap, "TABLE_ID", DATA_BINARY, 0, 8);
 	dict_mem_table_add_col(table, heap, "POS", DATA_INT, 0, 4);
@@ -413,8 +419,8 @@ dict_boot(void)
 	mem_heap_empty(heap);
 
 	index = dict_mem_index_create("SYS_COLUMNS", "CLUST_IND",
-				      DICT_HDR_SPACE,
-				      DICT_UNIQUE | DICT_CLUSTERED, 2);
+					  DICT_HDR_SPACE,
+					  DICT_UNIQUE | DICT_CLUSTERED, 2);
 
 	dict_mem_index_add_field(index, "TABLE_ID", 0);
 	dict_mem_index_add_field(index, "POS", 0);
@@ -422,14 +428,14 @@ dict_boot(void)
 	index->id = DICT_COLUMNS_ID;
 	error = dict_index_add_to_cache(table, index,
 					mtr_read_ulint(dict_hdr
-						       + DICT_HDR_COLUMNS,
-						       MLOG_4BYTES, &mtr),
+							   + DICT_HDR_COLUMNS,
+							   MLOG_4BYTES, &mtr),
 					FALSE);
 	ut_a(error == DB_SUCCESS);
 
 	/*-------------------------*/
 	table = dict_mem_table_create("SYS_INDEXES", DICT_HDR_SPACE,
-				      DICT_NUM_COLS__SYS_INDEXES, 0, 0, 0);
+					  DICT_NUM_COLS__SYS_INDEXES, 0, 0, 0);
 
 	dict_mem_table_add_col(table, heap, "TABLE_ID", DATA_BINARY, 0, 8);
 	dict_mem_table_add_col(table, heap, "ID", DATA_BINARY, 0, 8);
@@ -447,8 +453,8 @@ dict_boot(void)
 	mem_heap_empty(heap);
 
 	index = dict_mem_index_create("SYS_INDEXES", "CLUST_IND",
-				      DICT_HDR_SPACE,
-				      DICT_UNIQUE | DICT_CLUSTERED, 2);
+					  DICT_HDR_SPACE,
+					  DICT_UNIQUE | DICT_CLUSTERED, 2);
 
 	dict_mem_index_add_field(index, "TABLE_ID", 0);
 	dict_mem_index_add_field(index, "ID", 0);
@@ -456,8 +462,8 @@ dict_boot(void)
 	index->id = DICT_INDEXES_ID;
 	error = dict_index_add_to_cache(table, index,
 					mtr_read_ulint(dict_hdr
-						       + DICT_HDR_INDEXES,
-						       MLOG_4BYTES, &mtr),
+							   + DICT_HDR_INDEXES,
+							   MLOG_4BYTES, &mtr),
 					FALSE);
 	ut_a(error == DB_SUCCESS);
 
@@ -475,8 +481,8 @@ dict_boot(void)
 	mem_heap_free(heap);
 
 	index = dict_mem_index_create("SYS_FIELDS", "CLUST_IND",
-				      DICT_HDR_SPACE,
-				      DICT_UNIQUE | DICT_CLUSTERED, 2);
+					  DICT_HDR_SPACE,
+					  DICT_UNIQUE | DICT_CLUSTERED, 2);
 
 	dict_mem_index_add_field(index, "INDEX_ID", 0);
 	dict_mem_index_add_field(index, "POS", 0);
@@ -484,8 +490,8 @@ dict_boot(void)
 	index->id = DICT_FIELDS_ID;
 	error = dict_index_add_to_cache(table, index,
 					mtr_read_ulint(dict_hdr
-						       + DICT_HDR_FIELDS,
-						       MLOG_4BYTES, &mtr),
+							   + DICT_HDR_FIELDS,
+							   MLOG_4BYTES, &mtr),
 					FALSE);
 	ut_a(error == DB_SUCCESS);
 
@@ -503,7 +509,7 @@ dict_boot(void)
 	the innodb to start the server even though ibuf is not
 	empty. */
 	if (srv_force_recovery != SRV_FORCE_NO_LOG_REDO
-	    && srv_read_only_mode && !ibuf_is_empty()) {
+		&& srv_read_only_mode && !ibuf_is_empty()) {
 
 		ib::error() << "Change buffer must be empty when"
 			" --innodb-read-only is set!";
@@ -520,7 +526,7 @@ dict_boot(void)
 
 	mutex_exit(&dict_sys->mutex);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*****************************************************************//**
@@ -541,6 +547,7 @@ dberr_t
 dict_create(void)
 /*=============*/
 {
+	DBUG_ENTER("dict_create");
 	mtr_t	mtr;
 
 	mtr_start(&mtr);
@@ -555,5 +562,5 @@ dict_create(void)
 		dict_insert_initial_data();
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
