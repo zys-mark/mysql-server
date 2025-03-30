@@ -1857,13 +1857,14 @@ row_insert_for_mysql(
 	const byte*		mysql_rec,
 	row_prebuilt_t*		prebuilt)
 {
+	DBUG_ENTER("row_insert_for_mysql");
 	/* For intrinsic tables there a lot of restrictions that can be
 	relaxed including locking of table, transaction handling, etc.
 	Use direct cursor interface for inserting to intrinsic tables. */
 	if (dict_table_is_intrinsic(prebuilt->table)) {
-		return(row_insert_for_mysql_using_cursor(mysql_rec, prebuilt));
+		DBUG_RETURN(row_insert_for_mysql_using_cursor(mysql_rec, prebuilt));
 	} else {
-		return(row_insert_for_mysql_using_ins_graph(
+		DBUG_RETURN(row_insert_for_mysql_using_ins_graph(
 			mysql_rec, prebuilt));
 	}
 }
@@ -1876,6 +1877,8 @@ row_prebuild_sel_graph(
 	row_prebuilt_t*	prebuilt)	/*!< in: prebuilt struct in MySQL
 					handle */
 {
+	DBUG_ENTER("row_prebuild_sel_graph");
+
 	sel_node_t*	node;
 
 	ut_ad(prebuilt && prebuilt->trx);
@@ -1893,6 +1896,8 @@ row_prebuild_sel_graph(
 
 		prebuilt->sel_graph->state = QUE_FORK_ACTIVE;
 	}
+
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -1948,6 +1953,8 @@ row_get_prebuilt_update_vector(
 	row_prebuilt_t*	prebuilt)	/*!< in: prebuilt struct in MySQL
 					handle */
 {
+	DBUG_ENTER("row_get_prebuilt_update_vector");
+
 	dict_table_t*	table	= prebuilt->table;
 	upd_node_t*	node;
 
@@ -1972,7 +1979,7 @@ row_get_prebuilt_update_vector(
 		prebuilt->upd_graph->state = QUE_FORK_ACTIVE;
 	}
 
-	return(prebuilt->upd_node->update);
+	DBUG_RETURN(prebuilt->upd_node->update);
 }
 
 /********************************************************************
@@ -3039,6 +3046,8 @@ row_create_table_for_mysql(
 	trx_t*		trx,	/*!< in/out: transaction */
 	bool		commit)	/*!< in: if true, commit the transaction */
 {
+	DBUG_ENTER("row_create_table_for_mysql");
+
 	tab_node_t*	node;
 	mem_heap_t*	heap;
 	que_thr_t*	thr;
@@ -3071,7 +3080,7 @@ err_exit:
 
 		trx->op_info = "";
 
-		return(DB_ERROR);
+		DBUG_RETURN(DB_ERROR);
 	}
 
 	trx_start_if_not_started_xa(trx, true);
@@ -3147,7 +3156,7 @@ err_exit:
 			}
 
 			/* We can check for file system punch hole support
-                        only after creating the tablespace. On Windows
+						only after creating the tablespace. On Windows
 			we can query that information but not on Linux. */
 			ut_ad(err == DB_SUCCESS
 				|| err == DB_IO_NO_PUNCH_HOLE_FS);
@@ -3170,7 +3179,7 @@ err_exit:
 			<< " because tablespace full";
 
 		if (dict_table_open_on_name(table->name.m_name, TRUE, FALSE,
-					    DICT_ERR_IGNORE_NONE)) {
+						DICT_ERR_IGNORE_NONE)) {
 
 			dict_table_close_and_drop(trx, table);
 
@@ -3188,10 +3197,10 @@ err_exit:
 		/* We already have .ibd file here. it should be deleted. */
 
 		if (dict_table_is_file_per_table(table)
-		    && fil_delete_tablespace(
-			    table->space,
-			    BUF_REMOVE_FLUSH_NO_WRITE)
-		    != DB_SUCCESS) {
+			&& fil_delete_tablespace(
+				table->space,
+				BUF_REMOVE_FLUSH_NO_WRITE)
+			!= DB_SUCCESS) {
 
 			ib::error() << "Not able to delete tablespace "
 				<< table->space << " of table "
@@ -3212,7 +3221,7 @@ err_exit:
 
 	trx->op_info = "";
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*********************************************************************//**
@@ -3234,6 +3243,8 @@ row_create_index_for_mysql(
 					large. */
 	dict_table_t*	handler)	/*!< in/out: table handler. */
 {
+	DBUG_ENTER("row_create_index_for_mysql");
+
 	ind_node_t*	node;
 	mem_heap_t*	heap;
 	que_thr_t*	thr;
@@ -3404,7 +3415,7 @@ error_handling:
 	ut_free(table_name);
 	ut_free(index_name);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*********************************************************************//**

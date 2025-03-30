@@ -3796,6 +3796,8 @@ row_ins_step(
 /*=========*/
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_ins_step");
+
 	ins_node_t*	node;
 	que_node_t*	parent;
 	sel_node_t*	sel_node;
@@ -3868,19 +3870,19 @@ same_trx:
 
 			thr->run_node = sel_node;
 
-			return(thr);
+			DBUG_RETURN(thr);
 		}
 	}
 
 	if ((node->ins_type == INS_SEARCHED)
-	    && (sel_node->state != SEL_NODE_FETCH)) {
+		&& (sel_node->state != SEL_NODE_FETCH)) {
 
 		ut_ad(sel_node->state == SEL_NODE_NO_MORE_ROWS);
 
 		/* No more rows to insert */
 		thr->run_node = parent;
 
-		return(thr);
+		DBUG_RETURN(thr);
 	}
 
 	/* DO THE CHECKS OF THE CONSISTENCY CONSTRAINTS HERE */
@@ -3892,7 +3894,7 @@ error_handling:
 
 	if (err != DB_SUCCESS) {
 		/* err == DB_LOCK_WAIT or SQL error detected */
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	/* DO THE TRIGGER ACTIONS HERE */
@@ -3905,5 +3907,5 @@ error_handling:
 		thr->run_node = que_node_get_parent(node);
 	}
 
-	return(thr);
+	DBUG_RETURN(thr);
 }

@@ -1403,6 +1403,8 @@ ind_create_graph_create(
 	mem_heap_t*		heap,
 	const dict_add_v_col_t*	add_v)
 {
+	DBUG_ENTER("ind_create_graph_create");
+
 	ind_node_t*	node;
 
 	node = static_cast<ind_node_t*>(
@@ -1426,7 +1428,7 @@ ind_create_graph_create(
 					  dict_sys->sys_fields, heap);
 	node->field_def->common.parent = node;
 
-	return(node);
+	DBUG_RETURN(node);
 }
 
 /***********************************************************//**

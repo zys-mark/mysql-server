@@ -227,13 +227,14 @@ dict_tables_have_same_db(
 	const char*	name2)	/*!< in: table name in the form
 				dbname '/' tablename */
 {
+	DBUG_ENTER("dict_tables_have_same_db");
 	for (; *name1 == *name2; name1++, name2++) {
 		if (*name1 == '/') {
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 		ut_a(*name1); /* the names must contain '/' */
 	}
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /********************************************************************//**

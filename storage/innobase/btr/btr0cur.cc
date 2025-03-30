@@ -3063,6 +3063,8 @@ btr_cur_optimistic_insert(
 				mtr_commit(mtr) before latching
 				any further pages */
 {
+	DBUG_ENTER("btr_cur_optimistic_insert");
+
 	big_rec_t*	big_rec_vec	= NULL;
 	dict_index_t*	index;
 	page_cur_t*	page_cursor;
@@ -3085,8 +3087,8 @@ btr_cur_optimistic_insert(
 	and index is auto-generated clustered index. */
 	ut_ad(mtr_is_block_fix(mtr, block, MTR_MEMO_PAGE_X_FIX, index->table));
 	ut_ad(!dict_index_is_online_ddl(index)
-	      || dict_index_is_clust(index)
-	      || (flags & BTR_CREATE_FLAG));
+		  || dict_index_is_clust(index)
+		  || (flags & BTR_CREATE_FLAG));
 	ut_ad(dtuple_check_typed(entry));
 
 	const page_size_t&	page_size = block->page.size;
@@ -3112,7 +3114,7 @@ btr_cur_optimistic_insert(
 
 		if (UNIV_UNLIKELY(big_rec_vec == NULL)) {
 
-			return(DB_TOO_BIG_RECORD);
+			DBUG_RETURN(DB_TOO_BIG_RECORD);
 		}
 
 		rec_size = rec_get_converted_size(index, entry, n_ext);
@@ -3123,14 +3125,14 @@ btr_cur_optimistic_insert(
 			dtuple_convert_back_big_rec(index, entry, big_rec_vec);
 		}
 
-		return(DB_TOO_BIG_RECORD);
+		DBUG_RETURN(DB_TOO_BIG_RECORD);
 	}
 
 	LIMIT_OPTIMISTIC_INSERT_DEBUG(page_get_n_recs(page),
-				      goto fail);
+					  goto fail);
 
 	if (leaf && page_size.is_compressed()
-	    && (page_get_data_size(page) + rec_size
+		&& (page_get_data_size(page) + rec_size
 		>= dict_index_zip_pad_optimal_page_size(index))) {
 		/* If compression padding tells us that insertion will
 		result in too packed up page i.e.: which is likely to
@@ -3150,16 +3152,16 @@ fail_err:
 			dtuple_convert_back_big_rec(index, entry, big_rec_vec);
 		}
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	ulint	max_size = page_get_max_insert_size_after_reorganize(page, 1);
 
 	if (page_has_garbage(page)) {
 		if ((max_size < rec_size
-		     || max_size < BTR_CUR_PAGE_REORGANIZE_LIMIT)
-		    && page_get_n_recs(page) > 1
-		    && page_get_max_insert_size(page, 1) < rec_size) {
+			 || max_size < BTR_CUR_PAGE_REORGANIZE_LIMIT)
+			&& page_get_n_recs(page) > 1
+			&& page_get_max_insert_size(page, 1) < rec_size) {
 
 			goto fail;
 		}
@@ -3173,9 +3175,9 @@ fail_err:
 	future updates of records. */
 
 	if (leaf && !page_size.is_compressed() && dict_index_is_clust(index)
-	    && page_get_n_recs(page) >= 2
-	    && dict_index_get_space_reserve() + rec_size > max_size
-	    && (btr_page_get_split_rec_to_right(cursor, &dummy)
+		&& page_get_n_recs(page) >= 2
+		&& dict_index_get_space_reserve() + rec_size > max_size
+		&& (btr_page_get_split_rec_to_right(cursor, &dummy)
 		|| btr_page_get_split_rec_to_left(cursor, &dummy))) {
 		goto fail;
 	}
@@ -3183,12 +3185,12 @@ fail_err:
 	page_cursor = btr_cur_get_page_cur(cursor);
 
 	DBUG_PRINT("ib_cur", ("insert %s (" IB_ID_FMT ") by " TRX_ID_FMT
-			      ": %s",
-			      index->name(), index->id,
-			      thr != NULL
-			      ? trx_get_id_for_print(thr_get_trx(thr))
-			      : 0,
-			      rec_printer(entry).str().c_str()));
+				  ": %s",
+				  index->name(), index->id,
+				  thr != NULL
+				  ? trx_get_id_for_print(thr_get_trx(thr))
+				  : 0,
+				  rec_printer(entry).str().c_str()));
 
 	DBUG_EXECUTE_IF("do_page_reorganize",
 			btr_page_reorganize(page_cursor, index, mtr););
@@ -3227,8 +3229,8 @@ fail_err:
 		page_cur_tuple_insert() will have attempted page
 		reorganize before failing. */
 		if (leaf
-		    && !dict_index_is_clust(index)
-		    && !dict_table_is_temporary(index->table)) {
+			&& !dict_index_is_clust(index)
+			&& !dict_table_is_temporary(index->table)) {
 			ibuf_reset_free_bits(block);
 		}
 
@@ -3254,7 +3256,7 @@ fail_err:
 		reorg = TRUE;
 
 		*rec = page_cur_tuple_insert(page_cursor, entry, index,
-					     offsets, heap, n_ext, mtr);
+						 offsets, heap, n_ext, mtr);
 
 		if (UNIV_UNLIKELY(!*rec)) {
 			ib::fatal() <<  "Cannot insert tuple " << *entry
@@ -3278,8 +3280,8 @@ fail_err:
 	}
 
 	if (leaf
-	    && !dict_index_is_clust(index)
-	    && !dict_table_is_temporary(index->table)) {
+		&& !dict_index_is_clust(index)
+		&& !dict_table_is_temporary(index->table)) {
 		/* Update the free bits of the B-tree page in the
 		insert buffer bitmap. */
 
@@ -3307,7 +3309,7 @@ fail_err:
 
 	*big_rec = big_rec_vec;
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /*************************************************************//**
@@ -3340,6 +3342,8 @@ btr_cur_pessimistic_insert(
 	que_thr_t*	thr,	/*!< in: query thread or NULL */
 	mtr_t*		mtr)	/*!< in/out: mini-transaction */
 {
+	DBUG_ENTER("btr_cur_pessimistic_insert");
+
 	dict_index_t*	index		= cursor->index;
 	big_rec_t*	big_rec_vec	= NULL;
 	dberr_t		err;
@@ -3354,13 +3358,13 @@ btr_cur_pessimistic_insert(
 	ut_ad(mtr_memo_contains_flagged(
 		mtr, dict_index_get_lock(btr_cur_get_index(cursor)),
 		MTR_MEMO_X_LOCK | MTR_MEMO_SX_LOCK)
-	      || dict_table_is_intrinsic(cursor->index->table));
+		  || dict_table_is_intrinsic(cursor->index->table));
 	ut_ad(mtr_is_block_fix(
 		mtr, btr_cur_get_block(cursor),
 		MTR_MEMO_PAGE_X_FIX, cursor->index->table));
 	ut_ad(!dict_index_is_online_ddl(index)
-	      || dict_index_is_clust(index)
-	      || (flags & BTR_CREATE_FLAG));
+		  || dict_index_is_clust(index)
+		  || (flags & BTR_CREATE_FLAG));
 
 	cursor->flag = BTR_CUR_BINARY;
 
@@ -3370,12 +3374,11 @@ btr_cur_pessimistic_insert(
 					thr, mtr, &inherit);
 
 	if (err != DB_SUCCESS) {
-
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	if (!(flags & BTR_NO_UNDO_LOG_FLAG)
-	    || dict_table_is_intrinsic(index->table)) {
+		|| dict_table_is_intrinsic(index->table)) {
 		/* First reserve enough free space for the file segments
 		of the index tree, so that the insert will not fail because
 		of lack of space */
@@ -3385,7 +3388,7 @@ btr_cur_pessimistic_insert(
 		success = fsp_reserve_free_extents(&n_reserved, index->space,
 						   n_extents, FSP_NORMAL, mtr);
 		if (!success) {
-			return(DB_OUT_OF_FILE_SPACE);
+			DBUG_RETURN(DB_OUT_OF_FILE_SPACE);
 		}
 	}
 
@@ -3409,14 +3412,14 @@ btr_cur_pessimistic_insert(
 
 			if (n_reserved > 0) {
 				fil_space_release_free_extents(index->space,
-							       n_reserved);
+								   n_reserved);
 			}
-			return(DB_TOO_BIG_RECORD);
+			DBUG_RETURN(DB_TOO_BIG_RECORD);
 		}
 	}
 
 	if (dict_index_get_page(index)
-	    == btr_cur_get_block(cursor)->page.id.page_no()) {
+		== btr_cur_get_block(cursor)->page.id.page_no()) {
 
 		/* The page is the root page */
 		*rec = btr_root_raise_and_insert(
@@ -3427,7 +3430,7 @@ btr_cur_pessimistic_insert(
 	}
 
 	ut_ad(page_rec_get_next(btr_cur_get_rec(cursor)) == *rec
-	      || dict_index_is_spatial(index));
+		  || dict_index_is_spatial(index));
 
 	if (!(flags & BTR_NO_LOCKING_FLAG)) {
 		ut_ad(!dict_table_is_temporary(index->table));
@@ -3444,10 +3447,10 @@ btr_cur_pessimistic_insert(
 					thr_get_trx(thr)->id, mtr);
 			}
 			if (!page_rec_is_infimum(btr_cur_get_rec(cursor))
-			    || btr_page_get_prev(
+				|| btr_page_get_prev(
 				buf_block_get_frame(
 					btr_cur_get_block(cursor)), mtr)
-			       == FIL_NULL) {
+				   == FIL_NULL) {
 				/* split and inserted need to call
 				lock_update_insert() always. */
 				inherit = TRUE;
@@ -3469,7 +3472,7 @@ btr_cur_pessimistic_insert(
 
 	*big_rec = big_rec_vec;
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /*==================== B-TREE UPDATE =========================*/
