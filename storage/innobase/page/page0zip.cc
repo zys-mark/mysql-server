@@ -4821,7 +4821,7 @@ page_zip_reorganize(
 #ifndef UNIV_HOTBACKUP
 		buf_block_free(temp_block);
 #endif /* !UNIV_HOTBACKUP */
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	lock_move_reorganize_page(block, temp_block);
@@ -4829,7 +4829,7 @@ page_zip_reorganize(
 #ifndef UNIV_HOTBACKUP
 	buf_block_free(temp_block);
 #endif /* !UNIV_HOTBACKUP */
-	return(TRUE);
+    DBUG_RETURN(TRUE);
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -4924,7 +4924,8 @@ page_zip_copy_recs(
 #ifdef UNIV_ZIP_DEBUG
 	ut_a(page_zip_validate(page_zip, page, index));
 #endif /* UNIV_ZIP_DEBUG */
-	page_zip_compress_write_log(page_zip, page, index, mtr);
+    page_zip_compress_write_log(page_zip, page, index, mtr);
+    DBUG_VOID_RETURN;
 }
 #endif /* !UNIV_HOTBACKUP */
 
