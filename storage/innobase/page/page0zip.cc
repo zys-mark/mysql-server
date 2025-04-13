@@ -1244,7 +1244,7 @@ page_zip_compress_clust(
 				err = deflate(c_stream, Z_NO_FLUSH);
 				if (UNIV_UNLIKELY(err != Z_OK)) {
 
-					return(err);
+					DBUG_RETURN(err);
 				}
 			}
 
@@ -1597,7 +1597,7 @@ err_exit:
 			mutex_exit(&page_zip_stat_per_index_mutex);
 		}
 #endif /* !UNIV_HOTBACKUP */
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	err = deflateEnd(&c_stream);
@@ -1729,14 +1729,14 @@ page_zip_fields_decode(
 
 		page_zip_fail(("page_zip_fields_decode: n = %lu\n",
 			       (ulong) n));
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	if (UNIV_UNLIKELY(b > end)) {
 
 		page_zip_fail(("page_zip_fields_decode: %p > %p\n",
 			       (const void*) b, (const void*) end));
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	table = dict_mem_table_create("ZIP_DUMMY", DICT_HDR_SPACE, n, 0,

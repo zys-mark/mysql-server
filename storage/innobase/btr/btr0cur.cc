@@ -51,7 +51,6 @@ Created 10/16/1994 Heikki Tuuri
 *******************************************************/
 
 #include "btr0cur.h"
-#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "btr0cur.ic"
@@ -1728,9 +1727,7 @@ need_opposite_intention:
 				leftmost_from_level = 0;
 			}
 
-            DBUG_PRINT("info",
-                       ("leftmost_from_level=%lu", leftmost_from_level));
-            if (height == 0 && leftmost_from_level > 0) {
+			if (height == 0 && leftmost_from_level > 0) {
 				/* should retry to get also prev_page
 				from level==leftmost_from_level. */
 				retrying_for_search_prev = true;
