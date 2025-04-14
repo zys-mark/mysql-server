@@ -39,6 +39,7 @@ Created 12/19/1997 Heikki Tuuri
 *******************************************************/
 
 #include "row0sel.h"
+#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "row0sel.ic"
@@ -3761,6 +3762,8 @@ sel_restore_position_for_mysql(
 	mtr_t*		mtr)		/*!< in: mtr; CAUTION: may commit
 					mtr temporarily! */
 {
+	DBUG_ENTER("sel_restore_position_for_mysql");
+
 	ibool		success;
 
 	success = btr_pcur_restore_position(latch_mode, pcur, mtr);
@@ -3771,11 +3774,11 @@ sel_restore_position_for_mysql(
 #ifdef UNIV_DEBUG
 	if (pcur->pos_state == BTR_PCUR_IS_POSITIONED_OPTIMISTIC) {
 		ut_ad(pcur->rel_pos == BTR_PCUR_BEFORE
-		      || pcur->rel_pos == BTR_PCUR_AFTER);
+			  || pcur->rel_pos == BTR_PCUR_AFTER);
 	} else {
 		ut_ad(pcur->pos_state == BTR_PCUR_IS_POSITIONED);
 		ut_ad((pcur->rel_pos == BTR_PCUR_ON)
-		      == btr_pcur_is_on_user_rec(pcur));
+			  == btr_pcur_is_on_user_rec(pcur));
 	}
 #endif /* UNIV_DEBUG */
 
@@ -3786,12 +3789,12 @@ sel_restore_position_for_mysql(
 		if (!success && moves_up) {
 next:
 			btr_pcur_move_to_next(pcur, mtr);
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
-		return(!success);
+		DBUG_RETURN(!success);
 	case BTR_PCUR_AFTER_LAST_IN_TREE:
 	case BTR_PCUR_BEFORE_FIRST_IN_TREE:
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	case BTR_PCUR_AFTER:
 		/* positioned to record after pcur->old_rec. */
 		pcur->pos_state = BTR_PCUR_IS_POSITIONED;
@@ -3799,7 +3802,7 @@ prev:
 		if (btr_pcur_is_on_user_rec(pcur) && !moves_up) {
 			btr_pcur_move_to_prev(pcur, mtr);
 		}
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	case BTR_PCUR_BEFORE:
 		/* For non optimistic restoration:
 		The position is now set to the record before pcur->old_rec.
@@ -3821,19 +3824,19 @@ prev:
 				HANDLER READ idx PREV; */
 				goto prev;
 			}
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		case BTR_PCUR_IS_POSITIONED:
 			if (moves_up && btr_pcur_is_on_user_rec(pcur)) {
 				goto next;
 			}
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		case BTR_PCUR_WAS_POSITIONED:
 		case BTR_PCUR_NOT_POSITIONED:
 			break;
 		}
 	}
 	ut_ad(0);
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /********************************************************************//**
@@ -3914,7 +3917,8 @@ row_sel_dequeue_cached_row_for_mysql(
 					row */
 	row_prebuilt_t*	prebuilt)	/*!< in: prebuilt struct */
 {
-	ulint			i;
+	DBUG_ENTER("row_sel_dequeue_cached_row_for_mysql");
+    ulint			i;
 	const mysql_row_templ_t*templ;
 	const byte*		cached_rec;
 	ut_ad(prebuilt->n_fetch_cached > 0);
@@ -3958,7 +3962,8 @@ row_sel_dequeue_cached_row_for_mysql(
 
 	if (prebuilt->n_fetch_cached == 0) {
 		prebuilt->fetch_cache_first = 0;
-	}
+    }
+    DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -4031,14 +4036,15 @@ row_sel_enqueue_cache_row_for_mysql(
 {
 	/* For non ICP code path the row should already exist in the
 	next fetch cache slot. */
-
+	DBUG_ENTER("row_sel_enqueue_cache_row_for_mysql");
 	if (prebuilt->idx_cond != NULL) {
 		byte*	dest = row_sel_fetch_last_buf(prebuilt);
 
 		ut_memcpy(dest, mysql_rec, prebuilt->mysql_row_len);
 	}
 
-	++prebuilt->n_fetch_cached;
+    ++prebuilt->n_fetch_cached;
+    DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**

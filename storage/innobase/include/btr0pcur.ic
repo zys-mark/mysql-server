@@ -35,6 +35,7 @@ Created 2/23/1996 Heikki Tuuri
 /*********************************************************//**
 Gets the rel_pos field for a cursor whose position has been stored.
 @return BTR_PCUR_ON, ... */
+#include "my_dbug.h"
 UNIV_INLINE
 ulint
 btr_pcur_get_rel_pos(
@@ -508,7 +509,8 @@ btr_pcur_open_with_no_init_func(
 	ulint		line,	/*!< in: line where called */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
-	btr_cur_t*	btr_cursor;
+    DBUG_ENTER("btr_pcur_open_with_no_init_func");
+    btr_cur_t*	btr_cursor;
 
 	cursor->latch_mode = BTR_LATCH_MODE_WITHOUT_INTENTION(latch_mode);
 	cursor->search_mode = mode;
@@ -534,7 +536,8 @@ btr_pcur_open_with_no_init_func(
 
 	cursor->old_stored = false;
 
-	cursor->trx_if_known = NULL;
+    cursor->trx_if_known = NULL;
+    DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
