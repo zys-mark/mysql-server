@@ -1242,6 +1242,8 @@ sel_set_rec_lock(
 	que_thr_t*		thr,	/*!< in: query thread */
 	mtr_t*			mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("sel_set_rec_lock");
+
 	trx_t*			trx;
 	dberr_t			err = DB_SUCCESS;
 	const buf_block_t*	block;
@@ -1252,8 +1254,7 @@ sel_set_rec_lock(
 
 	if (UT_LIST_GET_LEN(trx->lock.trx_locks) > 10000) {
 		if (buf_LRU_buf_pool_running_out()) {
-
-			return(DB_LOCK_TABLE_FULL);
+			DBUG_RETURN(DB_LOCK_TABLE_FULL);
 		}
 	}
 
@@ -1268,7 +1269,7 @@ sel_set_rec_lock(
 				ut_ad(0);
 				ib::error() << "Incorrectly request GAP lock "
 					"on RTree";
-				return(DB_SUCCESS);
+				DBUG_RETURN(DB_SUCCESS);
 			}
 			err = sel_set_rtr_rec_lock(pcur, rec, index, offsets,
 						   mode, type, thr, mtr);
@@ -1279,7 +1280,7 @@ sel_set_rec_lock(
 		}
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*********************************************************************//**

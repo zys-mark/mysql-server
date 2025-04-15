@@ -138,6 +138,8 @@ que_fork_create(
 	ulint		fork_type,	/*!< in: fork type */
 	mem_heap_t*	heap)		/*!< in: memory heap where created */
 {
+	DBUG_ENTER("que_fork_create");
+
 	que_fork_t*	fork;
 
 	ut_ad(heap);
@@ -158,7 +160,7 @@ que_fork_create(
 
 	UT_LIST_INIT(fork->thrs, &que_thr_t::thrs);
 
-	return(fork);
+	DBUG_RETURN(fork);
 }
 
 
@@ -173,6 +175,8 @@ que_thr_create(
 	mem_heap_t*	heap,
 	row_prebuilt_t*	prebuilt)
 {
+	DBUG_ENTER("que_thr_create");
+
 	que_thr_t*	thr;
 
 	ut_ad(parent != NULL);
@@ -196,7 +200,7 @@ que_thr_create(
 
 	UT_LIST_ADD_LAST(parent->thrs, thr);
 
-	return(thr);
+	DBUG_RETURN(thr);
 }
 
 /**********************************************************************//**
@@ -211,6 +215,8 @@ que_thr_end_lock_wait(
 	trx_t*		trx)	/*!< in: transaction with que_state in
 				QUE_THR_LOCK_WAIT */
 {
+	DBUG_ENTER("que_thr_end_lock_wait");
+
 	que_thr_t*	thr;
 	ibool		was_active;
 
@@ -236,7 +242,7 @@ que_thr_end_lock_wait(
 	/* In MySQL we let the OS thread (not just the query thread) to wait
 	for the lock to be released: */
 
-	return((!was_active && thr != NULL) ? thr : NULL);
+	DBUG_RETURN((!was_active && thr != NULL) ? thr : NULL);
 }
 
 /**********************************************************************//**
@@ -247,10 +253,14 @@ que_thr_init_command(
 /*=================*/
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("que_thr_init_command");
+
 	thr->run_node = thr;
 	thr->prev_node = thr->common.parent;
 
 	que_thr_move_to_run_state(thr);
+
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************************//**
@@ -264,6 +274,8 @@ que_fork_scheduler_round_robin(
 	que_fork_t*	fork,		/*!< in: a query fork */
 	que_thr_t*	thr)		/*!< in: current pos */
 {
+	DBUG_ENTER("que_fork_scheduler_round_robin");
+
 	trx_mutex_enter(fork->trx);
 
 	/* If no current, start first available. */
@@ -296,7 +308,7 @@ que_fork_scheduler_round_robin(
 
 	trx_mutex_exit(fork->trx);
 
-	return(thr);
+	DBUG_RETURN(thr);
 }
 
 /**********************************************************************//**
@@ -312,6 +324,8 @@ que_fork_start_command(
 /*===================*/
 	que_fork_t*	fork)	/*!< in: a query fork */
 {
+	DBUG_ENTER("que_fork_start_command");
+
 	que_thr_t*	thr;
 	que_thr_t*	suspended_thr = NULL;
 	que_thr_t*	completed_thr = NULL;
@@ -335,8 +349,8 @@ que_fork_start_command(
 	/* We make a single pass over the thr list within which we note which
 	threads are ready to run. */
 	for (thr = UT_LIST_GET_FIRST(fork->thrs);
-	     thr != NULL;
-	     thr = UT_LIST_GET_NEXT(thrs, thr)) {
+		 thr != NULL;
+		 thr = UT_LIST_GET_NEXT(thrs, thr)) {
 
 		switch (thr->state) {
 		case QUE_THR_COMMAND_WAIT:
@@ -346,7 +360,7 @@ que_fork_start_command(
 
 			que_thr_init_command(thr);
 
-			return(thr);
+			DBUG_RETURN(thr);
 
 		case QUE_THR_SUSPENDED:
 			/* In this case the execution of the thread was
@@ -385,7 +399,7 @@ que_fork_start_command(
 		ut_error;
 	}
 
-	return(thr);
+	DBUG_RETURN(thr);
 }
 
 /**********************************************************************//**
@@ -589,6 +603,8 @@ que_graph_free(
 			que_graph_free_recursive and free the heap
 			afterwards! */
 {
+	DBUG_ENTER("que_graph_free");
+
 	ut_ad(graph);
 
 	if (graph->sym_tab) {
@@ -606,6 +622,8 @@ que_graph_free(
 	que_graph_free_recursive(graph);
 
 	mem_heap_free(graph->heap);
+
+	DBUG_VOID_RETURN;
 }
 
 /****************************************************************//**
@@ -685,6 +703,8 @@ que_thr_stop(
 /*=========*/
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("que_thr_stop");
+
 	que_t*		graph;
 	trx_t*		trx = thr_get_trx(thr);
 
@@ -713,10 +733,10 @@ que_thr_stop(
 	} else {
 		ut_ad(graph->state == QUE_FORK_ACTIVE);
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /**********************************************************************//**
@@ -795,6 +815,8 @@ que_thr_stop_for_mysql(
 /*===================*/
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("que_thr_stop_for_mysql");
+
 	trx_t*	trx;
 
 	trx = thr_get_trx(thr);
@@ -804,7 +826,7 @@ que_thr_stop_for_mysql(
 	if (thr->state == QUE_THR_RUNNING) {
 
 		if (trx->error_state != DB_SUCCESS
-		    && trx->error_state != DB_LOCK_WAIT) {
+			&& trx->error_state != DB_LOCK_WAIT) {
 
 			/* Error handling built for the MySQL interface */
 			thr->state = QUE_THR_COMPLETED;
@@ -815,7 +837,7 @@ que_thr_stop_for_mysql(
 
 			trx_mutex_exit(trx);
 
-			return;
+			DBUG_VOID_RETURN;
 		}
 	}
 
@@ -829,6 +851,8 @@ que_thr_stop_for_mysql(
 	trx->lock.n_active_thrs--;
 
 	trx_mutex_exit(trx);
+
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************************//**
@@ -841,6 +865,8 @@ que_thr_move_to_run_state_for_mysql(
 	que_thr_t*	thr,	/*!< in: an query thread */
 	trx_t*		trx)	/*!< in: transaction */
 {
+	DBUG_ENTER("que_thr_move_to_run_state_for_mysql");
+
 	ut_a(thr->magic_n == QUE_THR_MAGIC_N);
 
 	if (!thr->is_active) {
@@ -853,6 +879,8 @@ que_thr_move_to_run_state_for_mysql(
 	}
 
 	thr->state = QUE_THR_RUNNING;
+
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************************//**
@@ -864,6 +892,8 @@ que_thr_stop_for_mysql_no_error(
 	que_thr_t*	thr,	/*!< in: query thread */
 	trx_t*		trx)	/*!< in: transaction */
 {
+	DBUG_ENTER("que_thr_stop_for_mysql_no_error");
+
 	ut_ad(thr->state == QUE_THR_RUNNING);
 	ut_ad(thr->is_active == TRUE);
 	ut_ad(trx->lock.n_active_thrs == 1);
@@ -876,6 +906,8 @@ que_thr_stop_for_mysql_no_error(
 	thr->graph->n_active_thrs--;
 
 	trx->lock.n_active_thrs--;
+
+	DBUG_VOID_RETURN;
 }
 
 /****************************************************************//**
@@ -887,6 +919,7 @@ que_node_get_containing_loop_node(
 /*==============================*/
 	que_node_t*	node)	/*!< in: node */
 {
+	DBUG_ENTER("que_node_get_containing_loop_node");
 	ut_ad(node);
 
 	for (;;) {
@@ -905,7 +938,7 @@ que_node_get_containing_loop_node(
 		}
 	}
 
-	return(node);
+	DBUG_RETURN(node);
 }
 
 #ifndef NDEBUG
@@ -977,6 +1010,8 @@ que_thr_step(
 /*=========*/
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("que_thr_step");
+
 	que_node_t*	node;
 	que_thr_t*	old_thr;
 	trx_t*		trx;
@@ -995,12 +1030,12 @@ que_thr_step(
 	old_thr = thr;
 
 	DBUG_PRINT("ib_que", ("Execute %u (%s) at %p",
-			      unsigned(type), que_node_type_string(node),
-			      (const void*) node));
+				  unsigned(type), que_node_type_string(node),
+				  (const void*) node));
 
 	if (type & QUE_NODE_CONTROL_STAT) {
 		if ((thr->prev_node != que_node_get_parent(node))
-		    && que_node_get_next(thr->prev_node)) {
+			&& que_node_get_next(thr->prev_node)) {
 
 			/* The control statements, like WHILE, always pass the
 			control to the next child statement if there is any
@@ -1081,7 +1116,7 @@ que_thr_step(
 		ut_a(thr_get_trx(thr)->error_state == DB_SUCCESS);
 	}
 
-	return(thr);
+	DBUG_RETURN(thr);
 }
 
 /**********************************************************************//**
@@ -1151,6 +1186,7 @@ que_run_threads(
 /*============*/
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("que_run_threads");
 	ut_ad(!trx_mutex_own(thr_get_trx(thr)));
 
 loop:
@@ -1179,7 +1215,7 @@ loop:
 
 			que_thr_dec_refer_count(thr, NULL);
 			trx_mutex_exit(thr_get_trx(thr));
-			break;
+			DBUG_VOID_RETURN;
 		}
 
 		trx_mutex_exit(thr_get_trx(thr));
@@ -1193,6 +1229,8 @@ loop:
 	default:
 		ut_error;
 	}
+
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -1256,7 +1294,9 @@ void
 que_init(void)
 /*==========*/
 {
+	DBUG_ENTER("que_init");
 	/* No op */
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -1265,5 +1305,7 @@ void
 que_close(void)
 /*===========*/
 {
+	DBUG_ENTER("que_close");
 	/* No op */
+	DBUG_VOID_RETURN;
 }

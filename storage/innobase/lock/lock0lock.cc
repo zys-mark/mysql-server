@@ -6388,6 +6388,7 @@ lock_clust_rec_read_check_and_lock(
 					LOCK_REC_NOT_GAP */
 	que_thr_t*		thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("lock_clust_rec_read_check_and_lock");
 	dberr_t	err;
 	ulint	heap_no;
 
@@ -6395,14 +6396,14 @@ lock_clust_rec_read_check_and_lock(
 	ut_ad(block->frame == page_align(rec));
 	ut_ad(page_rec_is_user_rec(rec) || page_rec_is_supremum(rec));
 	ut_ad(gap_mode == LOCK_ORDINARY || gap_mode == LOCK_GAP
-	      || gap_mode == LOCK_REC_NOT_GAP);
+		  || gap_mode == LOCK_REC_NOT_GAP);
 	ut_ad(rec_offs_validate(rec, index, offsets));
 
 	if ((flags & BTR_NO_LOCKING_FLAG)
-	    || srv_read_only_mode
-	    || dict_table_is_temporary(index->table)) {
+		|| srv_read_only_mode
+		|| dict_table_is_temporary(index->table)) {
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	heap_no = page_rec_get_heap_no(rec);
@@ -6415,9 +6416,9 @@ lock_clust_rec_read_check_and_lock(
 	lock_mutex_enter();
 
 	ut_ad(mode != LOCK_X
-	      || lock_table_has(thr_get_trx(thr), index->table, LOCK_IX));
+		  || lock_table_has(thr_get_trx(thr), index->table, LOCK_IX));
 	ut_ad(mode != LOCK_S
-	      || lock_table_has(thr_get_trx(thr), index->table, LOCK_IS));
+		  || lock_table_has(thr_get_trx(thr), index->table, LOCK_IS));
 
 	err = lock_rec_lock(FALSE, mode | gap_mode, block, heap_no, index, thr);
 
@@ -6429,7 +6430,7 @@ lock_clust_rec_read_check_and_lock(
 
 	DEBUG_SYNC_C("after_lock_clust_rec_read_check_and_lock");
 
-	return(err);
+	DBUG_RETURN(err);
 }
 /*********************************************************************//**
 Checks if locks of other transactions prevent an immediate read, or passing
