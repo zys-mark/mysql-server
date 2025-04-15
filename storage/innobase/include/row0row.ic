@@ -32,6 +32,7 @@ Created 4/20/1996 Heikki Tuuri
 *******************************************************/
 
 #include "dict0dict.h"
+#include "my_dbug.h"
 #include "rem0rec.h"
 #include "trx0undo.h"
 
@@ -46,6 +47,7 @@ row_get_trx_id_offset(
 	const dict_index_t*	index,	/*!< in: clustered index */
 	const ulint*		offsets)/*!< in: record offsets */
 {
+	DBUG_ENTER("row_get_trx_id_offset");
 	ulint	pos;
 	ulint	offset;
 	ulint	len;
@@ -59,7 +61,7 @@ row_get_trx_id_offset(
 
 	ut_ad(len == DATA_TRX_ID_LEN);
 
-	return(offset);
+	DBUG_RETURN(offset);
 }
 
 /*********************************************************************//**
@@ -73,6 +75,7 @@ row_get_rec_trx_id(
 	const dict_index_t*	index,	/*!< in: clustered index */
 	const ulint*		offsets)/*!< in: rec_get_offsets(rec, index) */
 {
+	DBUG_ENTER("row_get_rec_trx_id");
 	ulint	offset;
 
 	ut_ad(dict_index_is_clust(index));
@@ -84,7 +87,7 @@ row_get_rec_trx_id(
 		offset = row_get_trx_id_offset(index, offsets);
 	}
 
-	return(trx_read_trx_id(rec + offset));
+	DBUG_RETURN(trx_read_trx_id(rec + offset));
 }
 
 /*********************************************************************//**
@@ -98,6 +101,7 @@ row_get_rec_roll_ptr(
 	const dict_index_t*	index,	/*!< in: clustered index */
 	const ulint*		offsets)/*!< in: rec_get_offsets(rec, index) */
 {
+	DBUG_ENTER("row_get_rec_roll_ptr");
 	ulint	offset;
 
 	ut_ad(dict_index_is_clust(index));
@@ -109,7 +113,7 @@ row_get_rec_roll_ptr(
 		offset = row_get_trx_id_offset(index, offsets);
 	}
 
-	return(trx_read_roll_ptr(rec + offset + DATA_TRX_ID_LEN));
+	DBUG_RETURN(trx_read_roll_ptr(rec + offset + DATA_TRX_ID_LEN));
 }
 
 /*****************************************************************//**
@@ -131,13 +135,14 @@ row_build_index_entry(
 					the memory for the index entry
 					is allocated */
 {
+	DBUG_ENTER("row_build_index_entry");
 	dtuple_t*	entry;
 
 	ut_ad(dtuple_check_typed(row));
 	entry = row_build_index_entry_low(row, ext, index, heap,
 					  ROW_BUILD_NORMAL);
 	ut_ad(!entry || dtuple_check_typed(entry));
-	return(entry);
+	DBUG_RETURN(entry);
 }
 
 /*******************************************************************//**
@@ -157,6 +162,7 @@ row_build_row_ref_fast(
 				not copy field values to heap */
 	const ulint*	offsets)/*!< in: array returned by rec_get_offsets() */
 {
+	DBUG_ENTER("row_build_row_ref_fast");
 	dfield_t*	dfield;
 	const byte*	field;
 	ulint		len;
@@ -179,5 +185,6 @@ row_build_row_ref_fast(
 						  field_no, &len);
 			dfield_set_data(dfield, field, len);
 		}
-	}
+    }
+    DBUG_VOID_RETURN;
 }
