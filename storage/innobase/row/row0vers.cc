@@ -33,6 +33,7 @@ Created 2/6/1997 Heikki Tuuri
 
 #include "ha_prototypes.h"
 
+#include "my_dbug.h"
 #include "row0vers.h"
 
 #ifdef UNIV_NONINL
@@ -351,6 +352,8 @@ row_vers_impl_x_locked(
 	dict_index_t*	index,	/*!< in: the secondary index */
 	const ulint*	offsets)/*!< in: rec_get_offsets(rec, index) */
 {
+	DBUG_ENTER("row_vers_impl_x_locked");
+
 	mtr_t		mtr;
 	trx_t*		trx;
 	const rec_t*	clust_rec;
@@ -394,7 +397,7 @@ row_vers_impl_x_locked(
 
 	mtr_commit(&mtr);
 
-	return(trx);
+	DBUG_RETURN(trx);
 }
 
 /*****************************************************************//**
@@ -413,11 +416,13 @@ row_vers_must_preserve_del_marked(
 	const table_name_t&	name,
 	mtr_t*			mtr)
 {
+	DBUG_ENTER("row_vers_must_preserve_del_marked");
+
 	ut_ad(!rw_lock_own(&(purge_sys->latch), RW_LOCK_S));
 
 	mtr_s_lock(&purge_sys->latch, mtr);
 
-	return(!purge_sys->view.changes_visible(trx_id,	name));
+	DBUG_RETURN(!purge_sys->view.changes_visible(trx_id, name));
 }
 
 /** Check whether all non-virtual columns in a virtual index match that of in
@@ -872,6 +877,8 @@ row_vers_old_has_index_entry(
 	roll_ptr_t	roll_ptr,/*!< in: roll_ptr for the purge record */
 	trx_id_t	trx_id)	/*!< in: transaction ID on the purging record */
 {
+	DBUG_ENTER("row_vers_old_has_index_entry");
+
 	const rec_t*	version;
 	rec_t*		prev_version;
 	dict_index_t*	clust_index;
@@ -886,7 +893,7 @@ row_vers_old_has_index_entry(
 	const dtuple_t*	cur_vrow = NULL;
 
 	ut_ad(mtr_memo_contains_page(mtr, rec, MTR_MEMO_PAGE_X_FIX)
-	      || mtr_memo_contains_page(mtr, rec, MTR_MEMO_PAGE_S_FIX));
+		  || mtr_memo_contains_page(mtr, rec, MTR_MEMO_PAGE_S_FIX));
 	ut_ad(!rw_lock_own(&(purge_sys->latch), RW_LOCK_S));
 
 	clust_index = dict_table_get_first_index(index->table);
@@ -922,7 +929,7 @@ row_vers_old_has_index_entry(
 #ifdef NDEBUG
 # define dbug_v_purge false
 #else /* NDEBUG */
-                        bool    dbug_v_purge = false;
+						bool    dbug_v_purge = false;
 #endif /* NDEBUG */
 
 			DBUG_EXECUTE_IF(
@@ -935,7 +942,7 @@ row_vers_old_has_index_entry(
 			/* if the row is newly inserted, then the virtual
 			columns need to be computed */
 			if (trx_undo_roll_ptr_is_insert(t_roll_ptr)
-			    || dbug_v_purge) {
+				|| dbug_v_purge) {
 				row_vers_build_clust_v_col(
 					row, clust_index, index, heap);
 
@@ -949,7 +956,7 @@ row_vers_old_has_index_entry(
 						mem_heap_free(v_heap);
 					}
 
-					return(TRUE);
+					DBUG_RETURN(TRUE);
 				}
 			} else {
 				if (row_vers_vc_matches_cluster(
@@ -962,7 +969,7 @@ row_vers_old_has_index_entry(
 						mem_heap_free(v_heap);
 					}
 
-					return(TRUE);
+					DBUG_RETURN(TRUE);
 				}
 			}
 			clust_offsets = rec_get_offsets(rec, clust_index, NULL,
@@ -1000,7 +1007,7 @@ row_vers_old_has_index_entry(
 				if (v_heap) {
 					mem_heap_free(v_heap);
 				}
-				return(TRUE);
+				DBUG_RETURN(TRUE);
 			}
 		}
 	} else if (dict_index_has_virtual(index)) {
@@ -1021,9 +1028,9 @@ row_vers_old_has_index_entry(
 		vrow = NULL;
 
 		trx_undo_prev_version_build(rec, mtr, version,
-					    clust_index, clust_offsets,
-					    heap, &prev_version, NULL,
-					    dict_index_has_virtual(index)
+						clust_index, clust_offsets,
+						heap, &prev_version, NULL,
+						dict_index_has_virtual(index)
 						? &vrow : NULL, 0);
 		mem_heap_free(heap2); /* free version and clust_offsets */
 
@@ -1036,7 +1043,7 @@ row_vers_old_has_index_entry(
 				mem_heap_free(v_heap);
 			}
 
-			return(FALSE);
+			DBUG_RETURN(FALSE);
 		}
 
 		clust_offsets = rec_get_offsets(prev_version, clust_index,
@@ -1096,7 +1103,7 @@ row_vers_old_has_index_entry(
 					mem_heap_free(v_heap);
 				}
 
-				return(TRUE);
+				DBUG_RETURN(TRUE);
 			}
 		}
 
@@ -1133,7 +1140,8 @@ row_vers_build_for_consistent_read(
 				it was freshly inserted afterwards */
 	const dtuple_t**vrow)	/*!< out: virtual row */
 {
-	const rec_t*	version;
+	DBUG_ENTER("row_vers_build_for_consistent_read");
+    const rec_t*	version;
 	rec_t*		prev_version;
 	trx_id_t	trx_id;
 	mem_heap_t*	heap		= NULL;
@@ -1218,7 +1226,7 @@ row_vers_build_for_consistent_read(
 
 	mem_heap_free(heap);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*****************************************************************//**
@@ -1247,7 +1255,8 @@ row_vers_build_for_semi_consistent_read(
 	const dtuple_t** vrow)	/*!< out: virtual row, old version, or NULL
 				if it is not updated in the view */
 {
-	const rec_t*	version;
+	DBUG_ENTER("row_vers_build_for_semi_consistent_read");
+    const rec_t*	version;
 	mem_heap_t*	heap		= NULL;
 	byte*		buf;
 	trx_id_t	rec_trx_id	= 0;
@@ -1370,5 +1379,6 @@ committed_version_trx:
 
 	if (heap) {
 		mem_heap_free(heap);
-	}
+    }
+    DBUG_VOID_RETURN;
 }
