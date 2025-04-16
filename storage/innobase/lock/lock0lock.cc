@@ -4002,6 +4002,7 @@ lock_table(
 	lock_mode	mode,	/*!< in: lock mode */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("lock_table");
 	trx_t*		trx;
 	dberr_t		err;
 	const lock_t*	wait_for;
@@ -4011,10 +4012,10 @@ lock_table(
 	/* Given limited visibility of temp-table we can avoid
 	locking overhead */
 	if ((flags & BTR_NO_LOCKING_FLAG)
-	    || srv_read_only_mode
-	    || dict_table_is_temporary(table)) {
+		|| srv_read_only_mode
+		|| dict_table_is_temporary(table)) {
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	ut_a(flags == 0);
@@ -4028,7 +4029,7 @@ lock_table(
 
 	if (lock_table_has(trx, table, mode)) {
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	/* Read only transactions can write to temp tables, we don't want
@@ -4037,8 +4038,8 @@ lock_table(
 	of the read views. */
 
 	if ((mode == LOCK_IX || mode == LOCK_X)
-	    && !trx->read_only
-	    && trx->rsegs.m_redo.rseg == 0) {
+		&& !trx->read_only
+		&& trx->rsegs.m_redo.rseg == 0) {
 
 		trx_set_rw_mode(trx);
 	}
@@ -4070,7 +4071,7 @@ lock_table(
 
 	trx_mutex_exit(trx);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*********************************************************************//**

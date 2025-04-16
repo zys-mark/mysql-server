@@ -311,13 +311,13 @@ Moves the persistent cursor to the next user record in the tree. If no user
 records are left, the cursor ends up 'after last in tree'.
 @return TRUE if the cursor moved forward, ending on a user record */
 UNIV_INLINE
-ibool
-btr_pcur_move_to_next_user_rec(
-/*===========================*/
-	btr_pcur_t*	cursor,	/*!< in: persistent cursor; NOTE that the
+ibool btr_pcur_move_to_next_user_rec(
+    /*===========================*/
+    btr_pcur_t* cursor, /*!< in: persistent cursor; NOTE that the
 				function may release the page latch */
-	mtr_t*		mtr)	/*!< in: mtr */
+    mtr_t* mtr)         /*!< in: mtr */
 {
+    DBUG_ENTER("btr_pcur_move_to_next_user_rec");
 	ut_ad(cursor->pos_state == BTR_PCUR_IS_POSITIONED);
 	ut_ad(cursor->latch_mode != BTR_NO_LATCHES);
 	cursor->old_stored = false;
@@ -326,7 +326,7 @@ loop:
 
 		if (btr_pcur_is_after_last_in_tree(cursor, mtr)) {
 
-			return(FALSE);
+			DBUG_RETURN(FALSE);
 		}
 
 		btr_pcur_move_to_next_page(cursor, mtr);
@@ -336,7 +336,7 @@ loop:
 
 	if (btr_pcur_is_on_user_rec(cursor)) {
 
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	}
 
 	goto loop;
@@ -347,33 +347,33 @@ Moves the persistent cursor to the next record in the tree. If no records are
 left, the cursor stays 'after last in tree'.
 @return TRUE if the cursor was not after last in tree */
 UNIV_INLINE
-ibool
-btr_pcur_move_to_next(
-/*==================*/
-	btr_pcur_t*	cursor,	/*!< in: persistent cursor; NOTE that the
+ibool btr_pcur_move_to_next(
+    /*==================*/
+    btr_pcur_t* cursor, /*!< in: persistent cursor; NOTE that the
 				function may release the page latch */
-	mtr_t*		mtr)	/*!< in: mtr */
+    mtr_t* mtr)         /*!< in: mtr */
 {
+    DBUG_ENTER("btr_pcur_move_to_next");
 	ut_ad(cursor->pos_state == BTR_PCUR_IS_POSITIONED);
 	ut_ad(cursor->latch_mode != BTR_NO_LATCHES);
 
 	cursor->old_stored = false;
 
 	if (btr_pcur_is_after_last_on_page(cursor)) {
-
+		DBUG_PRINT("info", ("cursor is after last on page"));
 		if (btr_pcur_is_after_last_in_tree(cursor, mtr)) {
-
-			return(FALSE);
+			DBUG_PRINT("info", ("btr_pcur_move_to_next: after last in tree"));
+			DBUG_RETURN(FALSE);
 		}
-
+		DBUG_PRINT("info", ("btr_pcur_move_to_next: after last on page"));
 		btr_pcur_move_to_next_page(cursor, mtr);
 
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	}
-
+	DBUG_PRINT("info", ("btr_pcur_move_to_next: not after last on page"));
 	btr_pcur_move_to_next_on_page(cursor);
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /**************************************************************//**
