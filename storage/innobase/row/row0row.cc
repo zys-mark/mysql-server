@@ -33,6 +33,7 @@ Created 4/20/1996 Heikki Tuuri
 
 #include "ha_prototypes.h"
 
+#include "my_dbug.h"
 #include "row0row.h"
 
 #ifdef UNIV_NONINL
@@ -80,6 +81,7 @@ row_build_index_entry_low(
 					ROW_BUILD_FOR_PURGE
                                         or ROW_BUILD_FOR_UNDO */
 {
+	DBUG_ENTER("row_build_index_entry_low");
 	dtuple_t*	entry;
 	ulint		entry_len;
 	ulint		i;
@@ -149,7 +151,7 @@ row_build_index_entry_low(
 				  == DATA_MISSING)) {
 			/* The field has not been initialized in the row.
 			This should be from trx_undo_rec_get_partial_row(). */
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 
 #ifdef UNIV_DEBUG
@@ -210,7 +212,7 @@ row_build_index_entry_low(
 						case SPATIAL_NONE:
 						/* Undo record is logged before
 						spatial index is created.*/
-						return(NULL);
+						DBUG_RETURN(NULL);
 
 						case SPATIAL_UNKNOWN:
 						ut_ad(0);
@@ -314,7 +316,7 @@ row_build_index_entry_low(
 							     &len);
 			if (UNIV_LIKELY_NULL(buf)) {
 				if (UNIV_UNLIKELY(buf == field_ref_zero)) {
-					return(NULL);
+					DBUG_RETURN(NULL);
 				}
 				dfield_set_data(dfield, buf, len);
 			}
@@ -355,7 +357,7 @@ row_build_index_entry_low(
 		}
 	}
 
-	return(entry);
+	DBUG_RETURN(entry);
 }
 
 /** An inverse function to row_build_index_entry. Builds a row from a
@@ -395,6 +397,7 @@ row_build_low(
 	row_ext_t**		ext,
 	mem_heap_t*		heap)
 {
+	DBUG_ENTER("row_build_low");
 	const byte*		copy;
 	dtuple_t*		row;
 	ulint			n_ext_cols;
@@ -565,7 +568,7 @@ row_build_low(
 		mem_heap_free(tmp_heap);
 	}
 
-	return(row);
+	DBUG_RETURN(row);
 }
 
 
@@ -614,7 +617,8 @@ row_build(
 	mem_heap_t*		heap)	/*!< in: memory heap from which
 					 the memory needed is allocated */
 {
-	return(row_build_low(type, index, rec, offsets, col_table,
+	DBUG_ENTER("row_build");
+	DBUG_RETURN(row_build_low(type, index, rec, offsets, col_table,
 			     add_cols, NULL, col_map, ext, heap));
 }
 
@@ -654,7 +658,8 @@ row_build_w_add_vcol(
 	row_ext_t**		ext,
 	mem_heap_t*		heap)
 {
-	return(row_build_low(type, index, rec, offsets, col_table,
+	DBUG_ENTER("row_build_w_add_vcol");
+	DBUG_RETURN(row_build_low(type, index, rec, offsets, col_table,
 			     add_cols, add_v, col_map, ext, heap));
 }
 
@@ -673,6 +678,7 @@ row_rec_to_index_entry_low(
 	mem_heap_t*		heap)	/*!< in: memory heap from which
 					the memory needed is allocated */
 {
+	DBUG_ENTER("row_rec_to_index_entry_low");
 	dtuple_t*	entry;
 	dfield_t*	dfield;
 	ulint		i;
@@ -719,7 +725,7 @@ row_rec_to_index_entry_low(
 
 	ut_ad(dtuple_check_typed(entry));
 
-	return(entry);
+	DBUG_RETURN(entry);
 }
 
 /*******************************************************************//**
@@ -737,6 +743,7 @@ row_rec_to_index_entry(
 	mem_heap_t*		heap)	/*!< in: memory heap from which
 					the memory needed is allocated */
 {
+	DBUG_ENTER("row_rec_to_index_entry");
 	dtuple_t*	entry;
 	byte*		buf;
 	const rec_t*	copy_rec;
@@ -760,7 +767,7 @@ row_rec_to_index_entry(
 	dtuple_set_info_bits(entry,
 			     rec_get_info_bits(rec, rec_offs_comp(offsets)));
 
-	return(entry);
+	DBUG_RETURN(entry);
 }
 
 /*******************************************************************//**
@@ -785,6 +792,7 @@ row_build_row_ref(
 	mem_heap_t*	heap)	/*!< in: memory heap from which the memory
 				needed is allocated */
 {
+	DBUG_ENTER("row_build_row_ref");
 	dict_table_t*	table;
 	dict_index_t*	clust_index;
 	dfield_t*	dfield;
@@ -872,7 +880,7 @@ row_build_row_ref(
 		mem_heap_free(tmp_heap);
 	}
 
-	return(ref);
+	DBUG_RETURN(ref);
 }
 
 /*******************************************************************//**
@@ -896,6 +904,7 @@ row_build_row_ref_in_tuple(
 					or NULL */
 	trx_t*			trx)	/*!< in: transaction */
 {
+	DBUG_ENTER("row_build_row_ref_in_tuple");
 	const dict_index_t*	clust_index;
 	dfield_t*		dfield;
 	const byte*		field;
@@ -970,7 +979,8 @@ row_build_row_ref_in_tuple(
 	ut_ad(dtuple_check_typed(ref));
 	if (UNIV_LIKELY_NULL(heap)) {
 		mem_heap_free(heap);
-	}
+    }
+    DBUG_VOID_RETURN;
 }
 
 /***************************************************************//**
@@ -986,6 +996,7 @@ row_search_on_row_ref(
 	const dtuple_t*		ref,	/*!< in: row reference */
 	mtr_t*			mtr)	/*!< in/out: mtr */
 {
+	DBUG_ENTER("row_search_on_row_ref");
 	ulint		low_match;
 	rec_t*		rec;
 	dict_index_t*	index;
@@ -1004,15 +1015,15 @@ row_search_on_row_ref(
 
 	if (page_rec_is_infimum(rec)) {
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	if (low_match != dtuple_get_n_fields(ref)) {
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /*********************************************************************//**
@@ -1028,6 +1039,7 @@ row_get_clust_rec(
 	dict_index_t**	clust_index,/*!< out: clustered index */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("row_get_clust_rec");
 	mem_heap_t*	heap;
 	dtuple_t*	ref;
 	dict_table_t*	table;
@@ -1053,7 +1065,7 @@ row_get_clust_rec(
 
 	*clust_index = dict_table_get_first_index(table);
 
-	return(clust_rec);
+	DBUG_RETURN(clust_rec);
 }
 
 /***************************************************************//**
@@ -1069,6 +1081,7 @@ row_search_index_entry(
 				be closed by the caller */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("row_search_index_entry");
 	ulint	n_fields;
 	ulint	low_match;
 	rec_t*	rec;
@@ -1086,12 +1099,12 @@ row_search_index_entry(
 	switch (btr_pcur_get_btr_cur(pcur)->flag) {
 	case BTR_CUR_DELETE_REF:
 		ut_a(mode & BTR_DELETE && !dict_index_is_spatial(index));
-		return(ROW_NOT_DELETED_REF);
+		DBUG_RETURN(ROW_NOT_DELETED_REF);
 
 	case BTR_CUR_DEL_MARK_IBUF:
 	case BTR_CUR_DELETE_IBUF:
 	case BTR_CUR_INSERT_TO_IBUF:
-		return(ROW_BUFFERED);
+		DBUG_RETURN(ROW_BUFFERED);
 
 	case BTR_CUR_HASH:
 	case BTR_CUR_HASH_FAIL:
@@ -1107,13 +1120,13 @@ row_search_index_entry(
 
 	if (page_rec_is_infimum(rec)) {
 
-		return(ROW_NOT_FOUND);
+		DBUG_RETURN(ROW_NOT_FOUND);
 	} else if (low_match != n_fields) {
 
-		return(ROW_NOT_FOUND);
+		DBUG_RETURN(ROW_NOT_FOUND);
 	}
 
-	return(ROW_FOUND);
+	DBUG_RETURN(ROW_FOUND);
 }
 
 /*******************************************************************//**
@@ -1141,6 +1154,7 @@ row_raw_format_int(
 	ibool*		format_in_hex)	/*!< out: should the data be
 					formated in hex */
 {
+	DBUG_ENTER("row_raw_format_int");
 	ulint	ret;
 
 	if (data_len <= sizeof(ib_uint64_t)) {
@@ -1160,7 +1174,7 @@ row_raw_format_int(
 		ret = 0;
 	}
 
-	return(ut_min(ret, buf_size));
+	DBUG_RETURN(ut_min(ret, buf_size));
 }
 
 /*******************************************************************//**
@@ -1189,11 +1203,12 @@ row_raw_format_str(
 	ibool*		format_in_hex)	/*!< out: should the data be
 					formated in hex */
 {
+	DBUG_ENTER("row_raw_format_str");
 	ulint	charset_coll;
 
 	if (buf_size == 0) {
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	/* we assume system_charset_info is UTF-8 */
@@ -1202,18 +1217,18 @@ row_raw_format_str(
 
 	if (UNIV_LIKELY(dtype_is_utf8(prtype))) {
 
-		return(ut_str_sql_format(data, data_len, buf, buf_size));
+		DBUG_RETURN(ut_str_sql_format(data, data_len, buf, buf_size));
 	}
 	/* else */
 
 	if (charset_coll == DATA_MYSQL_BINARY_CHARSET_COLL) {
 
 		*format_in_hex = TRUE;
-		return(0);
+		DBUG_RETURN(0);
 	}
 	/* else */
 
-	return(innobase_raw_format(data, data_len, charset_coll,
+	DBUG_RETURN(innobase_raw_format(data, data_len, charset_coll,
 					  buf, buf_size));
 }
 
@@ -1236,6 +1251,7 @@ row_raw_format(
 	ulint			buf_size)	/*!< in: output buffer size
 						in bytes */
 {
+	DBUG_ENTER("row_raw_format");
 	ulint	mtype;
 	ulint	prtype;
 	ulint	ret;
@@ -1243,14 +1259,14 @@ row_raw_format(
 
 	if (buf_size == 0) {
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	if (data_len == UNIV_SQL_NULL) {
 
 		ret = ut_snprintf((char*) buf, buf_size, "NULL") + 1;
 
-		return(ut_min(ret, buf_size));
+		DBUG_RETURN(ut_min(ret, buf_size));
 	}
 
 	mtype = dict_field->col->mtype;
@@ -1299,7 +1315,7 @@ row_raw_format(
 		}
 	}
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 #ifdef UNIV_ENABLE_UNIT_TEST_ROW_RAW_FORMAT_INT
