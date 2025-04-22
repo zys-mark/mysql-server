@@ -444,6 +444,7 @@ row_vers_non_vc_match(
 	mem_heap_t*		heap,
 	ulint*			n_non_v_col)
 {
+	DBUG_ENTER("row_vers_non_vc_match");
 	const dfield_t* field1;
 	dfield_t*	field2;
 	ulint		n_fields = dtuple_get_n_fields(ientry);
@@ -477,7 +478,7 @@ row_vers_non_vc_match(
 		(*n_non_v_col)++;
 	}
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /** build virtual column value from current cluster index record data
@@ -659,6 +660,7 @@ row_vers_vc_matches_cluster(
 	const dtuple_t**vrow,
 	mtr_t*		mtr)
 {
+	DBUG_ENTER("row_vers_vc_matches_cluster");
 	const rec_t*	version;
 	rec_t*          prev_version;
 	mem_heap_t*	heap2;
@@ -679,7 +681,7 @@ row_vers_vc_matches_cluster(
 	if (!row_vers_non_vc_match(index, row, ext, ientry, tuple_heap,
 				   &n_non_v_col)) {
 		mem_heap_free(tuple_heap);
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	ut_ad(n_fields > n_non_v_col);
@@ -761,7 +763,7 @@ row_vers_vc_matches_cluster(
 
 					mem_heap_free(tuple_heap);
 					mem_heap_free(heap);
-					return(false);
+					DBUG_RETURN(false);
 				}
 
 				compare[v_col->v_pos] = true;
@@ -790,7 +792,7 @@ func_exit:
 	/* FIXME: In the case of n_cmp_v_col is not the same as
 	n_fields - n_non_v_col, callback is needed to compare the rest
 	columns. At the timebeing, we will need to return true */
-	return (true);
+	DBUG_RETURN (true);
 }
 
 /** Build a dtuple contains virtual column data for current cluster index
@@ -821,6 +823,7 @@ row_vers_build_cur_vrow(
 	mem_heap_t*	v_heap,
 	mtr_t*		mtr)
 {
+	DBUG_ENTER("row_vers_build_cur_vrow");
 	const dtuple_t*	cur_vrow = NULL;
 
 	roll_ptr_t t_roll_ptr = row_get_rec_roll_ptr(
@@ -852,7 +855,7 @@ row_vers_build_cur_vrow(
 
 	*clust_offsets = rec_get_offsets(rec, clust_index, NULL,
 					 ULINT_UNDEFINED, &heap);
-	return(cur_vrow);
+	DBUG_RETURN(cur_vrow);
 }
 
 /*****************************************************************//**
