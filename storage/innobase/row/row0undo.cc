@@ -33,6 +33,7 @@ Created 1/8/1997 Heikki Tuuri
 
 #include "ha_prototypes.h"
 
+#include "my_dbug.h"
 #include "row0undo.h"
 
 #ifdef UNIV_NONINL
@@ -141,6 +142,7 @@ row_undo_node_create(
 	mem_heap_t*	heap,	/*!< in: memory heap where created */
 	bool		partial_rollback) /*!< in: true if partial rollback */
 {
+	DBUG_ENTER("row_undo_node_create");
 	undo_node_t*	undo;
 
 	ut_ad(trx_state_eq(trx, TRX_STATE_ACTIVE)
@@ -162,7 +164,7 @@ row_undo_node_create(
 
 	undo->heap = mem_heap_create(256);
 
-	return(undo);
+	DBUG_RETURN(undo);
 }
 
 /***********************************************************//**
@@ -177,6 +179,7 @@ row_undo_search_clust_to_pcur(
 /*==========================*/
 	undo_node_t*	node)	/*!< in/out: row undo node */
 {
+	DBUG_ENTER("row_undo_search_clust_to_pcur");
 	dict_index_t*	clust_index;
 	bool		found;
 	mtr_t		mtr;
@@ -260,7 +263,7 @@ row_undo_search_clust_to_pcur(
 
 func_exit:
 	btr_pcur_commit_specify_mtr(&node->pcur, &mtr);
-	return(found);
+	DBUG_RETURN(found);
 }
 
 /***********************************************************//**
@@ -275,6 +278,7 @@ row_undo(
 	undo_node_t*	node,	/*!< in: row undo node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_undo");
 	dberr_t		err;
 	trx_t*		trx;
 	roll_ptr_t	roll_ptr;
@@ -304,7 +308,7 @@ row_undo(
 			trx->roll_limit = 0;
 			ut_d(trx->in_rollback = false);
 
-			return(DB_SUCCESS);
+			DBUG_RETURN(DB_SUCCESS);
 		}
 
 		node->roll_ptr = roll_ptr;
@@ -352,7 +356,7 @@ row_undo(
 
 	thr->run_node = node;
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 void
@@ -361,6 +365,7 @@ row_convert_impl_to_expl_if_needed(
 	btr_cur_t*	cursor, /*!< in: cursor to record */
 	undo_node_t*	node)	/*!< in: undo node */
 {
+	DBUG_ENTER("row_convert_impl_to_expl_if_needed");
 	ulint*		offsets = NULL;
 
 	/* In case of partial rollback implicit lock on the
@@ -376,7 +381,7 @@ row_convert_impl_to_expl_if_needed(
 	if (!node->partial
 	    || (node->trx == NULL)
 	    || node->trx->isolation_level < TRX_ISO_REPEATABLE_READ){
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	ut_ad(node->trx->in_rollback);
@@ -391,7 +396,8 @@ row_convert_impl_to_expl_if_needed(
 	    && !dict_index_is_spatial(index)) {
 		lock_rec_convert_active_impl_to_expl(block, rec, index,
 						      offsets,node->trx,heap_no);
-	}
+    }
+    DBUG_VOID_RETURN;
 }
 
 /***********************************************************//**
@@ -403,6 +409,7 @@ row_undo_step(
 /*==========*/
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_undo_step");
 	dberr_t		err;
 	undo_node_t*	node;
 	trx_t*		trx;
@@ -432,5 +439,5 @@ row_undo_step(
 		ib::fatal() << "Error (" << ut_strerr(err) << ") in rollback.";
 	}
 
-	return(thr);
+	DBUG_RETURN(thr);
 }
