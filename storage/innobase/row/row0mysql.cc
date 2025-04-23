@@ -41,6 +41,7 @@ Created 9/17/2000 Heikki Tuuri
 #include <sql_error.h>
 #include <vector>
 
+#include "my_dbug.h"
 #include "row0mysql.h"
 
 #ifdef UNIV_NONINL
@@ -2678,11 +2679,12 @@ row_update_for_mysql(
 	const byte*		mysql_rec,
 	row_prebuilt_t*		prebuilt)
 {
+	DBUG_ENTER("row_update_for_mysql");
 	if (dict_table_is_intrinsic(prebuilt->table)) {
-		return(row_del_upd_for_mysql_using_cursor(mysql_rec, prebuilt));
+		DBUG_RETURN(row_del_upd_for_mysql_using_cursor(mysql_rec, prebuilt));
 	} else {
 		ut_a(prebuilt->template_type == ROW_MYSQL_WHOLE_ROW);
-		return(row_update_for_mysql_using_upd_graph(
+		DBUG_RETURN(row_update_for_mysql_using_upd_graph(
 			mysql_rec, prebuilt));
 	}
 }

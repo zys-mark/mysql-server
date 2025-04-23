@@ -32,6 +32,7 @@ Created September 2006 Marko Makela
 *******************************************************/
 
 #include "row0ext.h"
+#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "row0ext.ic"
@@ -52,6 +53,7 @@ row_ext_cache_fill(
 	const page_size_t&	page_size,
 	const dfield_t*		dfield)
 {
+	DBUG_ENTER("row_ext_cache_fill");
 	const byte*	field	= static_cast<const byte*>(
 					dfield_get_data(dfield));
 	ulint		f_len	= dfield_get_len(dfield);
@@ -90,7 +92,8 @@ row_ext_cache_fill(
 			ext->len[i] = btr_copy_externally_stored_field_prefix(
 				buf, ext->max_len, page_size, field, f_len);
 		}
-	}
+    }
+    DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -113,6 +116,7 @@ row_ext_create(
 				to prevent deletion (rollback or purge). */
 	mem_heap_t*	heap)	/*!< in: heap where created */
 {
+	DBUG_ENTER("row_ext_create");
 	ulint		i;
 	const page_size_t&	page_size = dict_tf_get_page_size(flags);
 
@@ -145,5 +149,5 @@ row_ext_create(
 		row_ext_cache_fill(ret, i, page_size, dfield);
 	}
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
