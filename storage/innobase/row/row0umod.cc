@@ -33,6 +33,7 @@ Created 2/27/1997 Heikki Tuuri
 
 #include "ha_prototypes.h"
 
+#include "my_dbug.h"
 #include "row0umod.h"
 
 #ifdef UNIV_NONINL
@@ -103,6 +104,7 @@ row_undo_mod_clust_low(
 				latching any further pages */
 	ulint		mode)	/*!< in: BTR_MODIFY_LEAF or BTR_MODIFY_TREE */
 {
+	DBUG_ENTER("row_undo_mod_clust_low");
 	btr_pcur_t*	pcur;
 	btr_cur_t*	btr_cur;
 	dberr_t		err;
@@ -159,7 +161,7 @@ row_undo_mod_clust_low(
 		ut_a(!dummy_big_rec);
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -176,6 +178,7 @@ row_undo_mod_remove_clust_low(
 	mtr_t*		mtr,	/*!< in/out: mini-transaction */
 	ulint		mode)	/*!< in: BTR_MODIFY_LEAF or BTR_MODIFY_TREE */
 {
+	DBUG_ENTER("row_undo_mod_remove_clust_low");
 	btr_cur_t*	btr_cur;
 	dberr_t		err;
 	ulint		trx_id_offset;
@@ -190,7 +193,7 @@ row_undo_mod_remove_clust_low(
 						 node->table->name,
 						 mtr)) {
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	btr_cur = btr_pcur_get_btr_cur(&node->pcur);
@@ -222,7 +225,7 @@ row_undo_mod_remove_clust_low(
 	    != node->new_trx_id) {
 		/* The record must have been purged and then replaced
 		with a different one. */
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	/* We are about to remove an old, delete-marked version of the
@@ -253,7 +256,7 @@ row_undo_mod_remove_clust_low(
 		and restart with more file space */
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -267,6 +270,7 @@ row_undo_mod_clust(
 	undo_node_t*	node,	/*!< in: row undo node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_undo_mod_clust");
 	btr_pcur_t*	pcur;
 	mtr_t		mtr;
 	dberr_t		err;
@@ -403,7 +407,7 @@ row_undo_mod_clust(
 		mem_heap_free(offsets_heap);
 	}
 	mem_heap_free(heap);
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -420,6 +424,7 @@ row_undo_mod_del_mark_or_remove_sec_low(
 	ulint		mode)	/*!< in: latch mode BTR_MODIFY_LEAF or
 				BTR_MODIFY_TREE */
 {
+	DBUG_ENTER("row_undo_mod_del_mark_or_remove_sec_low");
 	btr_pcur_t		pcur;
 	btr_cur_t*		btr_cur;
 	ibool			success;
@@ -567,7 +572,7 @@ func_exit:
 func_exit_no_pcur:
 	mtr_commit(&mtr);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -588,18 +593,19 @@ row_undo_mod_del_mark_or_remove_sec(
 	dict_index_t*	index,	/*!< in: index */
 	dtuple_t*	entry)	/*!< in: index entry */
 {
+	DBUG_ENTER("row_undo_mod_del_mark_or_remove_sec");
 	dberr_t	err;
 
 	err = row_undo_mod_del_mark_or_remove_sec_low(node, thr, index,
 						      entry, BTR_MODIFY_LEAF);
 	if (err == DB_SUCCESS) {
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	err = row_undo_mod_del_mark_or_remove_sec_low(node, thr, index,
 		entry, BTR_MODIFY_TREE | BTR_LATCH_FOR_DELETE);
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -622,6 +628,7 @@ row_undo_mod_del_unmark_sec_and_undo_update(
 	dict_index_t*	index,	/*!< in: index */
 	dtuple_t*	entry)	/*!< in: index entry */
 {
+	DBUG_ENTER("row_undo_mod_del_unmark_sec_and_undo_update");
 	btr_pcur_t		pcur;
 	btr_cur_t*		btr_cur		= btr_pcur_get_btr_cur(&pcur);
 	upd_t*			update;
@@ -815,7 +822,7 @@ try_again:
 func_exit_no_pcur:
 	mtr_commit(&mtr);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -827,6 +834,7 @@ row_undo_mod_sec_flag_corrupted(
 	trx_t*		trx,	/*!< in/out: transaction */
 	dict_index_t*	index)	/*!< in: secondary index */
 {
+	DBUG_ENTER("row_undo_mod_sec_flag_corrupted");
 	ut_ad(!dict_index_is_clust(index));
 
 	switch (trx->dict_operation_lock_mode) {
@@ -846,7 +854,8 @@ row_undo_mod_sec_flag_corrupted(
 		/* This should be the rollback of a data dictionary
 		transaction. */
 		dict_set_corrupted(index, trx, "rollback");
-	}
+    }
+    DBUG_VOID_RETURN;
 }
 
 /***********************************************************//**
@@ -859,6 +868,7 @@ row_undo_mod_upd_del_sec(
 	undo_node_t*	node,	/*!< in: row undo node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_undo_mod_upd_del_sec");
 	mem_heap_t*	heap;
 	dberr_t		err	= DB_SUCCESS;
 
@@ -913,7 +923,7 @@ row_undo_mod_upd_del_sec(
 
 	mem_heap_free(heap);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -926,6 +936,7 @@ row_undo_mod_del_mark_sec(
 	undo_node_t*	node,	/*!< in: row undo node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_undo_mod_del_mark_sec");
 	mem_heap_t*	heap;
 	dberr_t		err	= DB_SUCCESS;
 
@@ -981,7 +992,7 @@ row_undo_mod_del_mark_sec(
 
 	mem_heap_free(heap);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -994,6 +1005,7 @@ row_undo_mod_upd_exist_sec(
 	undo_node_t*	node,	/*!< in: row undo node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_undo_mod_upd_exist_sec");
 	mem_heap_t*	heap;
 	dberr_t		err	= DB_SUCCESS;
 
@@ -1001,7 +1013,7 @@ row_undo_mod_upd_exist_sec(
 	    || ((node->cmpl_info & UPD_NODE_NO_ORD_CHANGE))) {
 		/* No change in secondary indexes */
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	heap = mem_heap_create(1024);
@@ -1122,7 +1134,7 @@ row_undo_mod_upd_exist_sec(
 
 	mem_heap_free(heap);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -1134,6 +1146,7 @@ row_undo_mod_parse_undo_rec(
 	undo_node_t*	node,		/*!< in: row undo node */
 	ibool		dict_locked)	/*!< in: TRUE if own dict_sys->mutex */
 {
+	DBUG_ENTER("row_undo_mod_parse_undo_rec");
 	dict_index_t*	clust_index;
 	byte*		ptr;
 	undo_no_t	undo_no;
@@ -1194,7 +1207,8 @@ row_undo_mod_parse_undo_rec(
 				     node->update, false, node->undo_row,
 				     (node->cmpl_info & UPD_NODE_NO_ORD_CHANGE)
 					? NULL : ptr);
-	}
+    }
+    DBUG_VOID_RETURN;
 }
 
 /***********************************************************//**
@@ -1206,6 +1220,7 @@ row_undo_mod(
 	undo_node_t*	node,	/*!< in: row undo node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_undo_mod");
 	dberr_t	err;
 	ibool	dict_locked;
 
@@ -1227,7 +1242,7 @@ row_undo_mod(
 
 		node->state = UNDO_NODE_FETCH_NEXT;
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	node->index = dict_table_get_first_index(node->table);
@@ -1262,5 +1277,5 @@ row_undo_mod(
 
 	node->table = NULL;
 
-	return(err);
+	DBUG_RETURN(err);
 }
