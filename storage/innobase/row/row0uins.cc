@@ -32,6 +32,7 @@ Created 2/25/1997 Heikki Tuuri
 *******************************************************/
 
 #include "row0uins.h"
+#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "row0uins.ic"
@@ -75,6 +76,7 @@ row_undo_ins_remove_clust_rec(
 /*==========================*/
 	undo_node_t*	node)	/*!< in: undo node */
 {
+	DBUG_ENTER("row_undo_ins_remove_clust_rec");
 	btr_cur_t*	btr_cur;
 	ibool		success;
 	dberr_t		err;
@@ -184,7 +186,7 @@ retry:
 func_exit:
 	btr_pcur_commit_specify_mtr(&node->pcur, &mtr);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***************************************************************//**
@@ -202,6 +204,7 @@ row_undo_ins_remove_sec_low(
 	que_thr_t*	thr,	/*!< in: query thread */
 	undo_node_t*	node)	/*!< in: undo node */
 {
+	DBUG_ENTER("row_undo_ins_remove_sec_low");
 	btr_pcur_t		pcur;
 	btr_cur_t*		btr_cur;
 	dberr_t			err	= DB_SUCCESS;
@@ -292,7 +295,7 @@ func_exit:
 func_exit_no_pcur:
 	mtr_commit(&mtr);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***************************************************************//**
@@ -308,6 +311,7 @@ row_undo_ins_remove_sec(
 	que_thr_t*	thr,	/*!< in: query thread */
 	undo_node_t*	node)
 {
+	DBUG_ENTER("row_undo_ins_remove_sec");
 	dberr_t	err;
 	ulint	n_tries	= 0;
 
@@ -317,7 +321,7 @@ row_undo_ins_remove_sec(
 
 	if (err == DB_SUCCESS) {
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	/* Try then pessimistic descent to the B-tree */
@@ -339,7 +343,7 @@ retry:
 		goto retry;
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -351,6 +355,7 @@ row_undo_ins_parse_undo_rec(
 	undo_node_t*	node,		/*!< in/out: row undo node */
 	ibool		dict_locked)	/*!< in: TRUE if own dict_sys->mutex */
 {
+	DBUG_ENTER("row_undo_ins_parse_undo_rec");
 	dict_index_t*	clust_index;
 	byte*		ptr;
 	undo_no_t	undo_no;
@@ -401,7 +406,8 @@ close_table:
 				" ignoring the table";
 			goto close_table;
 		}
-	}
+    }
+	DBUG_VOID_RETURN;
 }
 
 /***************************************************************//**
@@ -414,6 +420,7 @@ row_undo_ins_remove_sec_rec(
 	undo_node_t*	node,	/*!< in/out: row undo node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_undo_ins_remove_sec_rec");
 	dberr_t		err	= DB_SUCCESS;
 	dict_index_t*	index	= node->index;
 	mem_heap_t*	heap;
@@ -461,7 +468,7 @@ row_undo_ins_remove_sec_rec(
 func_exit:
 	node->index = index;
 	mem_heap_free(heap);
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -477,6 +484,7 @@ row_undo_ins(
 	undo_node_t*	node,	/*!< in: row undo node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_undo_ins");
 	dberr_t	err;
 	ibool	dict_locked;
 
@@ -489,7 +497,7 @@ row_undo_ins(
 	row_undo_ins_parse_undo_rec(node, dict_locked);
 
 	if (node->table == NULL) {
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	/* Iterate over all the indexes and undo the insert.*/
@@ -529,5 +537,5 @@ row_undo_ins(
 
 	node->table = NULL;
 
-	return(err);
+	DBUG_RETURN(err);
 }
