@@ -2519,6 +2519,7 @@ row_upd_clust_rec_by_insert(
 				a foreign key constraint */
 	mtr_t*		mtr)	/*!< in/out: mtr; gets committed here */
 {
+	DBUG_ENTER("row_upd_clust_rec_by_insert");
 	mem_heap_t*	heap;
 	btr_pcur_t*	pcur;
 	btr_cur_t*	btr_cur;
@@ -2582,7 +2583,7 @@ row_upd_clust_rec_by_insert(
 err_exit:
 			mtr_commit(mtr);
 			mem_heap_free(heap);
-			return(err);
+			DBUG_RETURN(err);
 		}
 
 		/* If the the new row inherits externally stored
@@ -2626,7 +2627,7 @@ check_fk:
 
 	mem_heap_free(heap);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**

@@ -4816,6 +4816,8 @@ btr_cur_del_mark_set_clust_rec(
 				contains the virtual cols if there are any */
 	mtr_t*		mtr)	/*!< in/out: mini-transaction */
 {
+	DBUG_ENTER("btr_cur_del_mark_set_clust_rec");
+
 	roll_ptr_t	roll_ptr;
 	dberr_t		err;
 	page_zip_des_t*	page_zip;
@@ -4831,23 +4833,21 @@ btr_cur_del_mark_set_clust_rec(
 	if (rec_get_deleted_flag(rec, rec_offs_comp(offsets))) {
 		/* While cascading delete operations, this becomes possible. */
 		ut_ad(rec_get_trx_id(rec, index) == thr_get_trx(thr)->id);
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	err = lock_clust_rec_modify_check_and_lock(BTR_NO_LOCKING_FLAG, block,
 						   rec, index, offsets, thr);
 
 	if (err != DB_SUCCESS) {
-
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	err = trx_undo_report_row_operation(flags, TRX_UNDO_MODIFY_OP, thr,
-					    index, entry, NULL, 0, rec, offsets,
-					    &roll_ptr);
+						index, entry, NULL, 0, rec, offsets,
+						&roll_ptr);
 	if (err != DB_SUCCESS) {
-
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	/* The search latch is not needed here, because
@@ -4861,7 +4861,7 @@ btr_cur_del_mark_set_clust_rec(
 	/* For intrinsic table, roll-ptr is not maintained as there is no UNDO
 	logging. Skip updating it. */
 	if (dict_table_is_intrinsic(index->table)) {
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	trx = thr_get_trx(thr);
@@ -4871,10 +4871,10 @@ btr_cur_del_mark_set_clust_rec(
 	ut_ad(!trx->in_rollback);
 
 	DBUG_PRINT("ib_cur", ("delete-mark clust %s (" IB_ID_FMT
-			      ") by " TRX_ID_FMT ": %s",
-			      index->table_name, index->id,
-			      trx_get_id_for_print(trx),
-			      rec_printer(rec, offsets).str().c_str()));
+				  ") by " TRX_ID_FMT ": %s",
+				  index->table_name, index->id,
+				  trx_get_id_for_print(trx),
+				  rec_printer(rec, offsets).str().c_str()));
 
 	if (dict_index_is_online_ddl(index)) {
 		row_log_table_delete(rec, entry, index, offsets, NULL);
@@ -4885,7 +4885,7 @@ btr_cur_del_mark_set_clust_rec(
 	btr_cur_del_mark_set_clust_rec_log(rec, index, trx->id,
 					   roll_ptr, mtr);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /****************************************************************//**
@@ -4991,7 +4991,7 @@ btr_cur_del_mark_set_sec_rec(
 						 rec, cursor->index, thr, mtr);
 	if (err != DB_SUCCESS) {
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	ut_ad(!!page_rec_is_comp(rec)
