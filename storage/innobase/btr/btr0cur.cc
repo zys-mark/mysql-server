@@ -51,6 +51,7 @@ Created 10/16/1994 Heikki Tuuri
 *******************************************************/
 
 #include "btr0cur.h"
+#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "btr0cur.ic"
@@ -4977,6 +4978,7 @@ btr_cur_del_mark_set_sec_rec(
 	que_thr_t*	thr,	/*!< in: query thread */
 	mtr_t*		mtr)	/*!< in/out: mini-transaction */
 {
+	DBUG_ENTER("btr_cur_del_mark_set_sec_rec");
 	buf_block_t*	block;
 	rec_t*		rec;
 	dberr_t		err;
@@ -5010,7 +5012,7 @@ btr_cur_del_mark_set_sec_rec(
 
 	btr_cur_del_mark_set_sec_rec_log(rec, val, mtr);
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /***********************************************************//**
@@ -5027,6 +5029,8 @@ btr_cur_set_deleted_flag_for_ibuf(
 	ibool		val,		/*!< in: value to set */
 	mtr_t*		mtr)		/*!< in/out: mini-transaction */
 {
+	DBUG_ENTER("btr_cur_set_deleted_flag_for_ibuf");
+
 	/* We do not need to reserve search latch, as the page
 	has just been read to the buffer pool and there cannot be
 	a hash index to it.  Besides, the delete-mark flag is being
@@ -5036,6 +5040,8 @@ btr_cur_set_deleted_flag_for_ibuf(
 	btr_rec_set_deleted_flag(rec, page_zip, val);
 
 	btr_cur_del_mark_set_sec_rec_log(rec, val, mtr);
+
+	DBUG_VOID_RETURN;
 }
 
 /*==================== B-TREE RECORD REMOVE =========================*/
@@ -5057,10 +5063,12 @@ btr_cur_compress_if_useful(
 				cursor position even if compression occurs */
 	mtr_t*		mtr)	/*!< in/out: mini-transaction */
 {
+	DBUG_ENTER("btr_cur_compress_if_useful");
+
 	/* Avoid applying compression as we don't accept lot of page garbage
 	given the workload of intrinsic table. */
 	if (dict_table_is_intrinsic(cursor->index->table)) {
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	ut_ad(mtr_memo_contains_flagged(
@@ -5082,12 +5090,12 @@ btr_cur_compress_if_useful(
 		/* Check whether page lock prevents the compression */
 		if (!lock_test_prdt_page_lock(trx, page_get_space_id(page),
 					      page_get_page_no(page))) {
-			return(false);
+			DBUG_RETURN(false);
 		}
 	}
 
-	return(btr_cur_compress_recommendation(cursor, mtr)
-	       && btr_compress(cursor, adjust, mtr));
+	DBUG_RETURN(btr_cur_compress_recommendation(cursor, mtr)
+				&& btr_compress(cursor, adjust, mtr));
 }
 
 /*******************************************************//**
@@ -5110,6 +5118,7 @@ btr_cur_optimistic_delete_func(
 				index, the mtr must be committed
 				before latching any further pages */
 {
+	DBUG_ENTER("btr_cur_optimistic_delete_func");
 	buf_block_t*	block;
 	rec_t*		rec;
 	mem_heap_t*	heap		= NULL;
@@ -5156,7 +5165,7 @@ btr_cur_optimistic_delete_func(
 			ut_a(page_zip_validate(page_zip, page, cursor->index));
 #endif /* UNIV_ZIP_DEBUG */
 			page_cur_delete_rec(btr_cur_get_page_cur(cursor),
-					    cursor->index, offsets, mtr);
+						cursor->index, offsets, mtr);
 #ifdef UNIV_ZIP_DEBUG
 			ut_a(page_zip_validate(page_zip, page, cursor->index));
 #endif /* UNIV_ZIP_DEBUG */
@@ -5193,7 +5202,7 @@ btr_cur_optimistic_delete_func(
 		mem_heap_free(heap);
 	}
 
-	return(no_compress_needed);
+	DBUG_RETURN(no_compress_needed);
 }
 
 /*************************************************************//**
@@ -5225,6 +5234,7 @@ btr_cur_pessimistic_delete(
 	bool		rollback,/*!< in: performing rollback? */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("btr_cur_pessimistic_delete");
 	buf_block_t*	block;
 	page_t*		page;
 	page_zip_des_t*	page_zip;
@@ -5274,7 +5284,7 @@ btr_cur_pessimistic_delete(
 		if (!success) {
 			*err = DB_OUT_OF_FILE_SPACE;
 
-			return(FALSE);
+			DBUG_RETURN(FALSE);
 		}
 	}
 
@@ -5363,7 +5373,7 @@ btr_cur_pessimistic_delete(
 				*err = DB_ERROR;
 
 				mem_heap_free(heap);
-				return(FALSE);
+				DBUG_RETURN(FALSE);
 			}
 
 			ut_d(parent_latched = true);
@@ -5441,7 +5451,7 @@ return_after_reservations:
 		fil_space_release_free_extents(index->space, n_reserved);
 	}
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*******************************************************************//**

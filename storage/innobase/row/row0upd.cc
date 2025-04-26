@@ -33,6 +33,7 @@ Created 12/27/1996 Heikki Tuuri
 
 #include "ha_prototypes.h"
 
+#include "my_dbug.h"
 #include "row0upd.h"
 
 #ifdef UNIV_NONINL
@@ -2162,6 +2163,7 @@ row_upd_sec_index_entry(
 	upd_node_t*	node,	/*!< in: row update node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_upd_sec_index_entry");
 	mtr_t			mtr;
 	const rec_t*		rec;
 	btr_pcur_t		pcur;
@@ -2378,7 +2380,7 @@ row_upd_sec_index_entry(
 func_exit:
 	mem_heap_free(heap);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -2393,6 +2395,7 @@ row_upd_sec_step(
 	upd_node_t*	node,	/*!< in: row update node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_upd_sec_step");
 	ut_ad((node->state == UPD_NODE_UPDATE_ALL_SEC)
 	      || (node->state == UPD_NODE_UPDATE_SOME_SEC));
 	ut_ad(!dict_index_is_clust(node->index));
@@ -2400,10 +2403,10 @@ row_upd_sec_step(
 	if (node->state == UPD_NODE_UPDATE_ALL_SEC
 	    || row_upd_changes_ord_field_binary(node->index, node->update,
 						thr, node->row, node->ext)) {
-		return(row_upd_sec_index_entry(node, thr));
+		DBUG_RETURN(row_upd_sec_index_entry(node, thr));
 	}
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 #ifdef UNIV_DEBUG
@@ -2793,6 +2796,7 @@ row_upd_del_mark_clust_rec(
 				a foreign key constraint */
 	mtr_t*		mtr)	/*!< in: mtr; gets committed here */
 {
+	DBUG_ENTER("row_upd_del_mark_clust_rec");
 	btr_pcur_t*	pcur;
 	btr_cur_t*	btr_cur;
 	dberr_t		err;
@@ -2825,7 +2829,7 @@ row_upd_del_mark_clust_rec(
 
 	mtr_commit(mtr);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -2839,6 +2843,7 @@ row_upd_clust_step(
 	upd_node_t*	node,	/*!< in: row update node */
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("row_upd_clust_step");
 	dict_index_t*	index;
 	btr_pcur_t*	pcur;
 	ibool		success;
@@ -3032,7 +3037,7 @@ exit_func:
 	if (heap) {
 		mem_heap_free(heap);
 	}
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**

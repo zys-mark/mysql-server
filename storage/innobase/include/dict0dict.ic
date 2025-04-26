@@ -293,10 +293,11 @@ dict_table_get_next_index(
 /*======================*/
 	const dict_index_t*	index)	/*!< in: index */
 {
+	DBUG_ENTER("dict_table_get_next_index");
 	ut_ad(index);
 	ut_ad(index->magic_n == DICT_INDEX_MAGIC_N);
 
-	return(UT_LIST_GET_NEXT(indexes, (dict_index_t*) index));
+	DBUG_RETURN(UT_LIST_GET_NEXT(indexes, (dict_index_t*) index));
 }
 #endif /* UNIV_DEBUG */
 #endif /* !UNIV_HOTBACKUP */
