@@ -33,6 +33,7 @@ Created 7/1/1994 Heikki Tuuri
 
 #include "ha_prototypes.h"
 
+#include "my_dbug.h"
 #include "rem0cmp.h"
 
 #ifdef UNIV_NONINL
@@ -681,6 +682,7 @@ cmp_dtuple_rec_with_match_low(
 	ulint		n_cmp,
 	ulint*		matched_fields)
 {
+	DBUG_ENTER("cmp_dtuple_rec_with_match_low");
 	ulint		cur_field;	/* current field number */
 	int		ret;		/* return value */
 
@@ -746,7 +748,7 @@ cmp_dtuple_rec_with_match_low(
 			up to the common fields */
 order_resolved:
 	*matched_fields = cur_field;
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /** Get the pad character code point for a type.

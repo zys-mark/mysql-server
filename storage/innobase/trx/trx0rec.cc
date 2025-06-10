@@ -32,6 +32,7 @@ Created 3/26/1996 Heikki Tuuri
 *******************************************************/
 
 #include "trx0rec.h"
+#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "trx0rec.ic"
@@ -1865,6 +1866,7 @@ trx_undo_report_row_operation(
 					0 if BTR_NO_UNDO_LOG
 					flag was specified */
 {
+	DBUG_ENTER("trx_undo_report_row_operation");
 	trx_t*		trx;
 	trx_undo_t*	undo;
 	ulint		page_no;
@@ -1883,7 +1885,7 @@ trx_undo_report_row_operation(
 
 		*roll_ptr = 0;
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	ut_ad(thr);
@@ -2049,7 +2051,7 @@ trx_undo_report_row_operation(
 			*roll_ptr = trx_undo_build_roll_ptr(
 				op_type == TRX_UNDO_INSERT_OP,
 				undo_ptr->rseg->id, page_no, offset);
-			return(DB_SUCCESS);
+			DBUG_RETURN(DB_SUCCESS);
 		}
 
 		ut_ad(page_no == undo->last_page_no);
@@ -2091,7 +2093,7 @@ trx_undo_report_row_operation(
 err_exit:
 	mutex_exit(&trx->undo_mutex);
 	mtr_commit(&mtr);
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*============== BUILDING PREVIOUS VERSION OF A RECORD ===============*/
@@ -2107,6 +2109,7 @@ trx_undo_get_undo_rec_low(
 	mem_heap_t*	heap,		/*!< in: memory heap where copied */
 	bool		is_redo_rseg)	/*!< in: true if redo rseg. */
 {
+	DBUG_ENTER("trx_undo_get_undo_rec_low");
 	trx_undo_rec_t*	undo_rec;
 	ulint		rseg_id;
 	ulint		page_no;
@@ -2130,7 +2133,7 @@ trx_undo_get_undo_rec_low(
 
 	mtr_commit(&mtr);
 
-	return(undo_rec);
+	DBUG_RETURN(undo_rec);
 }
 
 /******************************************************************//**

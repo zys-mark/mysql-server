@@ -1110,6 +1110,7 @@ dict_drop_index_tree(
 	btr_pcur_t*	pcur,
 	mtr_t*		mtr)
 {
+	DBUG_ENTER("dict_drop_index_tree");
 	const byte*	ptr;
 	ulint		len;
 	ulint		space;
@@ -1129,7 +1130,7 @@ dict_drop_index_tree(
 	if (root_page_no == FIL_NULL) {
 		/* The tree has already been freed */
 
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	mlog_write_ulint(const_cast<byte*>(ptr), FIL_NULL, MLOG_4BYTES, mtr);
@@ -1154,20 +1155,20 @@ dict_drop_index_tree(
 		/* It is a single table tablespace and the .ibd file is
 		missing: do nothing */
 
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	/* If tablespace is scheduled for truncate, do not try to drop
 	the indexes in that tablespace. There is a truncate fixup action
 	which will take care of it. */
 	if (srv_is_tablespace_truncated(space)) {
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	btr_free_if_exists(page_id_t(space, root_page_no), page_size,
 			   mach_read_from_8(ptr), mtr);
 
-	return(true);
+	DBUG_RETURN(true);
 }
 
 /*******************************************************************//**

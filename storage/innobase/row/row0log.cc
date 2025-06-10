@@ -32,6 +32,7 @@ Created 2011-05-26 Marko Makela
 *******************************************************/
 
 #include "row0log.h"
+#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "row0log.ic"
@@ -570,6 +571,7 @@ row_log_table_delete(
 	const byte*	sys)	/*!< in: DB_TRX_ID,DB_ROLL_PTR that should
 				be logged, or NULL to use those in rec */
 {
+	DBUG_ENTER("row_log_table_delete");
 	ulint		old_pk_extra_size;
 	ulint		old_pk_size;
 	ulint		ext_size = 0;
@@ -590,7 +592,7 @@ row_log_table_delete(
 	if (dict_index_is_corrupted(index)
 	    || !dict_index_is_online_ddl(index)
 	    || index->online_log->error != DB_SUCCESS) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	dict_table_t* new_table = index->online_log->table;
@@ -644,7 +646,7 @@ row_log_table_delete(
 			if (heap) {
 				goto func_exit;
 			}
-			return;
+			DBUG_VOID_RETURN;
 		}
 	}
 
@@ -743,6 +745,7 @@ row_log_table_delete(
 
 func_exit:
 	mem_heap_free(heap);
+	DBUG_VOID_RETURN;
 }
 
 /******************************************************//**
@@ -769,6 +772,7 @@ row_log_table_low_redundant(
 					/*!< in: clustered index of the
 					new table, not latched */
 {
+	DBUG_ENTER("row_log_table_low_redundant");
 	ulint		old_pk_size;
 	ulint		old_pk_extra_size;
 	ulint		size;
@@ -902,6 +906,7 @@ row_log_table_low_redundant(
 	}
 
 	mem_heap_free(heap);
+	DBUG_VOID_RETURN;
 }
 
 /******************************************************//**
@@ -922,6 +927,7 @@ row_log_table_low(
 	const dtuple_t*	old_pk)	/*!< in: old PRIMARY KEY value (if !insert
 				and a PRIMARY KEY is being created) */
 {
+	DBUG_ENTER("row_log_table_low");
 	ulint			omit_size;
 	ulint			old_pk_size;
 	ulint			old_pk_extra_size;
@@ -955,14 +961,14 @@ row_log_table_low(
 	if (dict_index_is_corrupted(index)
 	    || !dict_index_is_online_ddl(index)
 	    || index->online_log->error != DB_SUCCESS) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (!rec_offs_comp(offsets)) {
 		row_log_table_low_redundant(
 			rec, ventry, o_ventry, index, insert,
 			old_pk, new_index);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	ut_ad(page_is_comp(page_align(rec)));
@@ -1068,6 +1074,7 @@ row_log_table_low(
 		row_log_table_close(
 			index->online_log, b, mrec_size, avail_size);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /******************************************************//**
@@ -1384,7 +1391,9 @@ row_log_table_insert(
 				or X-latched */
 	const ulint*	offsets)/*!< in: rec_get_offsets(rec,index) */
 {
+	DBUG_ENTER("row_log_table_insert");
 	row_log_table_low(rec, ventry, NULL, index, offsets, true, NULL);
+	DBUG_VOID_RETURN;
 }
 
 /******************************************************//**

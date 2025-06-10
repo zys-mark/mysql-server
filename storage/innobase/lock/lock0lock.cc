@@ -31,6 +31,7 @@ The transaction lock system
 Created 5/7/1996 Heikki Tuuri
 *******************************************************/
 
+#include "my_dbug.h"
 #define LOCK_MODULE_IMPLEMENTATION
 
 #include <mysql/service_thd_engine_lock.h>
@@ -6157,6 +6158,7 @@ lock_clust_rec_modify_check_and_lock(
 	const ulint*		offsets,/*!< in: rec_get_offsets(rec, index) */
 	que_thr_t*		thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("lock_clust_rec_modify_check_and_lock");
 	dberr_t	err;
 	ulint	heap_no;
 
@@ -6165,8 +6167,7 @@ lock_clust_rec_modify_check_and_lock(
 	ut_ad(block->frame == page_align(rec));
 
 	if (flags & BTR_NO_LOCKING_FLAG) {
-
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 	ut_ad(!dict_table_is_temporary(index->table));
 
@@ -6184,7 +6185,7 @@ lock_clust_rec_modify_check_and_lock(
 	ut_ad(lock_table_has(thr_get_trx(thr), index->table, LOCK_IX));
 
 	err = lock_rec_lock(TRUE, LOCK_X | LOCK_REC_NOT_GAP,
-			    block, heap_no, index, thr);
+				block, heap_no, index, thr);
 
 	MONITOR_INC(MONITOR_NUM_RECLOCK_REQ);
 
@@ -6196,7 +6197,7 @@ lock_clust_rec_modify_check_and_lock(
 		err = DB_SUCCESS;
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*********************************************************************//**
@@ -6219,6 +6220,7 @@ lock_sec_rec_modify_check_and_lock(
 				(can be NULL if BTR_NO_LOCKING_FLAG) */
 	mtr_t*		mtr)	/*!< in/out: mini-transaction */
 {
+	DBUG_ENTER("lock_sec_rec_modify_check_and_lock");
 	dberr_t	err;
 	ulint	heap_no;
 
@@ -6229,7 +6231,7 @@ lock_sec_rec_modify_check_and_lock(
 
 	if (flags & BTR_NO_LOCKING_FLAG) {
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 	ut_ad(!dict_table_is_temporary(index->table));
 
@@ -6281,7 +6283,7 @@ lock_sec_rec_modify_check_and_lock(
 		err = DB_SUCCESS;
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*********************************************************************//**

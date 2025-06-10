@@ -32,6 +32,7 @@ Created 11/5/1995 Heikki Tuuri
 *******************************************************/
 
 #include "buf0lru.h"
+#include "my_dbug.h"
 #ifdef UNIV_NONINL
 #include "buf0lru.ic"
 #endif /* UNIV_NOINL */
@@ -1137,6 +1138,7 @@ ibool
 buf_LRU_buf_pool_running_out(void)
 /*==============================*/
 {
+	DBUG_ENTER("buf_LRU_buf_pool_running_out");
 	ibool	ret = FALSE;
 
 	for (ulint i = 0; i < srv_buf_pool_instances && !ret; i++) {
@@ -1157,8 +1159,9 @@ buf_LRU_buf_pool_running_out(void)
 
 		buf_pool_mutex_exit(buf_pool);
 	}
-
-	return(ret);
+	DBUG_PRINT("innodb::buf", ("buf_LRU_buf_pool_running_out: %s",
+            ret ? "TRUE" : "FALSE"));
+	DBUG_RETURN(ret);
 }
 
 /******************************************************************//**

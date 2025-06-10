@@ -3602,6 +3602,7 @@ btr_cur_update_in_place_log(
 		log_ptr = row_upd_write_sys_vals_to_log(
 				index, trx_id, roll_ptr, log_ptr, mtr);
 	} else {
+		DBUG_PRINT("btr", ("Dummy system fields for a secondary index"));
 		/* Dummy system fields for a secondary index */
 		/* TRX_ID Position */
 		log_ptr += mach_write_compressed(log_ptr, 0);
@@ -3962,6 +3963,7 @@ btr_cur_optimistic_update(
 				mtr_commit(mtr) before latching any
 				further pages */
 {
+	DBUG_ENTER("btr_cur_optimistic_update");
 	dict_index_t*	index;
 	page_cur_t*	page_cursor;
 	dberr_t		err;
@@ -4014,7 +4016,7 @@ btr_cur_optimistic_update(
 		externally stored in rec or update, and there is enough space
 		on the compressed page to log the update. */
 
-		return(btr_cur_update_in_place(
+		DBUG_RETURN(btr_cur_update_in_place(
 			       flags, cursor, *offsets, update,
 			       cmpl_info, thr, trx_id, mtr));
 	}
@@ -4028,7 +4030,7 @@ any_extern:
 		operation. */
 		btr_cur_prefetch_siblings(block);
 
-		return(DB_OVERFLOW);
+		DBUG_RETURN(DB_OVERFLOW);
 	}
 
 	for (i = 0; i < upd_get_n_fields(update); i++) {
@@ -4073,7 +4075,7 @@ any_extern:
 		if (!btr_cur_update_alloc_zip(
 			    page_zip, page_cursor, index, *offsets,
 			    new_rec_size, true, mtr)) {
-			return(DB_ZIP_OVERFLOW);
+			DBUG_RETURN(DB_ZIP_OVERFLOW);
 		}
 
 		rec = page_cur_get_rec(page_cursor);
@@ -4199,7 +4201,7 @@ func_exit:
 		btr_cur_prefetch_siblings(block);
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*************************************************************//**
@@ -4281,6 +4283,7 @@ btr_cur_pessimistic_update(
 	mtr_t*		mtr)	/*!< in/out: mini-transaction; must be
 				committed before latching any further pages */
 {
+	DBUG_ENTER("btr_cur_pessimistic_update");
 	big_rec_t*	big_rec_vec	= NULL;
 	big_rec_t*	dummy_big_rec;
 	dict_index_t*	index;
@@ -4353,7 +4356,7 @@ btr_cur_pessimistic_update(
 			dtuple_big_rec_free(big_rec_vec);
 		}
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	rec = btr_cur_get_rec(cursor);
@@ -4669,7 +4672,7 @@ return_after_reservations:
 
 	*big_rec = big_rec_vec;
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*==================== B-TREE DELETE MARK AND UNMARK ===============*/
@@ -4687,6 +4690,7 @@ btr_cur_del_mark_set_clust_rec_log(
 	roll_ptr_t	roll_ptr,/*!< in: roll ptr to the undo log record */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("btr_cur_del_mark_set_clust_rec_log");
 	byte*	log_ptr;
 
 	ut_ad(!!page_rec_is_comp(rec) == dict_table_is_comp(index->table));
@@ -4713,6 +4717,7 @@ btr_cur_del_mark_set_clust_rec_log(
 	log_ptr += 2;
 
 	mlog_close(mtr, log_ptr);
+	DBUG_VOID_RETURN;
 }
 #endif /* !UNIV_HOTBACKUP */
 

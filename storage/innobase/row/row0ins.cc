@@ -33,6 +33,7 @@ Created 4/20/1996 Heikki Tuuri
 
 #include "ha_prototypes.h"
 
+#include "my_dbug.h"
 #include "row0ins.h"
 
 #ifdef UNIV_NONINL
@@ -350,6 +351,7 @@ row_ins_clust_index_entry_by_modify(
 	mtr_t*		mtr)	/*!< in: mtr; must be committed before
 				latching any further pages */
 {
+	DBUG_ENTER("row_ins_clust_index_entry_by_modify");
 	const rec_t*	rec;
 	upd_t*		update;
 	dberr_t		err = DB_SUCCESS;
@@ -374,7 +376,7 @@ row_ins_clust_index_entry_by_modify(
 		cursor->index, entry, rec, NULL, true,
 		thr_get_trx(thr), heap, mysql_table, &err);
 	if (err != DB_SUCCESS) {
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	if (mode != BTR_MODIFY_TREE) {
@@ -397,7 +399,7 @@ row_ins_clust_index_entry_by_modify(
 	} else {
 		if (buf_LRU_buf_pool_running_out()) {
 
-			return(DB_LOCK_TABLE_FULL);
+			DBUG_RETURN(DB_LOCK_TABLE_FULL);
 
 		}
 
@@ -420,7 +422,7 @@ row_ins_clust_index_entry_by_modify(
 		}
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*********************************************************************//**
@@ -2219,6 +2221,7 @@ row_ins_duplicate_online(
 	const rec_t*	rec,	/*!< in: clustered index record */
 	ulint*		offsets)/*!< in/out: rec_get_offsets(rec) */
 {
+	DBUG_ENTER("row_ins_duplicate_online");
 	ulint	fields	= 0;
 
 	/* During rebuild, there should not be any delete-marked rows
@@ -2233,15 +2236,15 @@ row_ins_duplicate_online(
 
 	if (fields < n_uniq) {
 		/* Not a duplicate. */
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	if (fields == n_uniq + 2) {
 		/* rec is an exact match of entry. */
-		return(DB_SUCCESS_LOCKED_REC);
+		DBUG_RETURN(DB_SUCCESS_LOCKED_REC);
 	}
 
-	return(DB_DUPLICATE_KEY);
+	DBUG_RETURN(DB_DUPLICATE_KEY);
 }
 
 /** Checks for a duplicate when the table is being rebuilt online.
@@ -2259,6 +2262,7 @@ row_ins_duplicate_error_in_clust_online(
 	ulint**		offsets,/*!< in/out: rec_get_offsets(rec) */
 	mem_heap_t**	heap)	/*!< in/out: heap for offsets */
 {
+	DBUG_ENTER("row_ins_duplicate_error_in_clust_online");
 	dberr_t		err	= DB_SUCCESS;
 	const rec_t*	rec	= btr_cur_get_rec(cursor);
 
@@ -2267,7 +2271,7 @@ row_ins_duplicate_error_in_clust_online(
 					   ULINT_UNDEFINED, heap);
 		err = row_ins_duplicate_online(n_uniq, entry, rec, *offsets);
 		if (err != DB_SUCCESS) {
-			return(err);
+			DBUG_RETURN(err);
 		}
 	}
 
@@ -2279,7 +2283,7 @@ row_ins_duplicate_error_in_clust_online(
 		err = row_ins_duplicate_online(n_uniq, entry, rec, *offsets);
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***************************************************************//**
@@ -2302,6 +2306,7 @@ row_ins_duplicate_error_in_clust(
 	que_thr_t*	thr,	/*!< in: query thread */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("row_ins_duplicate_error_in_clust");
 	dberr_t	err;
 	rec_t*	rec;
 	ulint	n_unique;
@@ -2433,7 +2438,7 @@ func_exit:
 	if (UNIV_LIKELY_NULL(heap)) {
 		mem_heap_free(heap);
 	}
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***************************************************************//**
