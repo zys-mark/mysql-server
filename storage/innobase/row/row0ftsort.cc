@@ -34,6 +34,7 @@ Created 10/13/2010 Jimmy Yang
 #include "ha_prototypes.h"
 
 #include "dict0dict.h"
+#include "my_dbug.h"
 #include "row0merge.h"
 #include "pars0pars.h"
 #include "row0ftsort.h"
@@ -88,6 +89,7 @@ row_merge_create_fts_sort_index(
 	dict_field_t*   idx_field;
 	CHARSET_INFO*	charset;
 
+	DBUG_ENTER("row_merge_create_fts_sort_index");
 	// FIXME: This name shouldn't be hard coded here.
 	new_index = dict_mem_index_create(
 		index->table->name.m_name, "tmp_fts_idx", 0, DICT_FTS, 3);
@@ -174,7 +176,7 @@ row_merge_create_fts_sort_index(
 	field->col->prtype = DATA_NOT_NULL;
 	field->col->mbminmaxlen = 0;
 
-	return(new_index);
+	DBUG_RETURN(new_index);
 }
 /*********************************************************************//**
 Initialize FTS parallel sort structures.
@@ -204,6 +206,7 @@ row_fts_psort_info_init(
 	ulint			block_size;
 	ibool			ret = TRUE;
 
+	DBUG_ENTER("row_fts_psort_info_init");
 	block_size = 3 * srv_sort_buf_size;
 
 	*psort = psort_info = static_cast<fts_psort_t*>(ut_zalloc_nokey(
@@ -211,7 +214,7 @@ row_fts_psort_info_init(
 
 	if (!psort_info) {
 		ut_free(dup);
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	/* Common Info for all sort threads */
@@ -221,7 +224,7 @@ row_fts_psort_info_init(
 	if (!common_info) {
 		ut_free(dup);
 		ut_free(psort_info);
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	common_info->dup = dup;
@@ -302,7 +305,7 @@ func_exit:
 		row_fts_psort_info_destroy(psort_info, merge_info);
 	}
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 /*********************************************************************//**
 Clean up and deallocate FTS parallel sort structures, and close the
@@ -316,6 +319,7 @@ row_fts_psort_info_destroy(
 	ulint	i;
 	ulint	j;
 
+	DBUG_ENTER("row_fts_psort_info_destroy");
 	if (psort_info) {
 		for (j = 0; j < fts_sort_pll_degree; j++) {
 			for (i = 0; i < FTS_NUM_AUX_INDEX; i++) {
@@ -339,6 +343,7 @@ row_fts_psort_info_destroy(
 	}
 
 	ut_free(merge_info);
+	DBUG_VOID_RETURN;
 }
 /*********************************************************************//**
 Free up merge buffers when merge sort is done */
@@ -350,8 +355,9 @@ row_fts_free_pll_merge_buf(
 	ulint	j;
 	ulint	i;
 
+	DBUG_ENTER("row_fts_free_pll_merge_buf");
 	if (!psort_info) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	for (j = 0; j < fts_sort_pll_degree; j++) {
@@ -360,7 +366,7 @@ row_fts_free_pll_merge_buf(
 		}
 	}
 
-	return;
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -381,6 +387,7 @@ row_merge_fts_doc_add_word_for_parser(
 	row_fts_token_t*	fts_token;
 	byte*			ptr;
 
+	DBUG_ENTER("row_merge_fts_doc_add_word_for_parser");
 	ut_ad(param);
 	ut_ad(param->mysql_ftparam);
 	ut_ad(word);
@@ -412,7 +419,7 @@ row_merge_fts_doc_add_word_for_parser(
 	/* Add token to list */
 	UT_LIST_ADD_LAST(t_ctx->fts_token_list, fts_token);
 
-	return(0);
+	DBUG_RETURN(0);
 }
 
 /*********************************************************************//**
@@ -427,6 +434,7 @@ row_merge_fts_doc_tokenize_by_parser(
 {
 	MYSQL_FTPARSER_PARAM	param;
 
+	DBUG_ENTER("row_merge_fts_doc_tokenize_by_parser");
 	ut_a(parser);
 
 	/* Set paramters for param */
@@ -442,6 +450,7 @@ row_merge_fts_doc_tokenize_by_parser(
 	/* We assume parse returns successfully here. */
 	parser->parse(&param);
 	PARSER_DEINIT(parser, &param);
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -475,6 +484,7 @@ row_merge_fts_doc_tokenize(
 	st_mysql_ftparser*	parser;
 	bool			is_ngram;
 
+	DBUG_ENTER("row_merge_fts_doc_tokenize");
 	t_str.f_n_char = 0;
 	t_ctx->buf_used = 0;
 
@@ -694,7 +704,7 @@ row_merge_fts_doc_tokenize(
 		t_ctx->init_pos += doc->text.f_len + 1;
 	}
 
-	return(!buf_full);
+	DBUG_RETURN(!buf_full);
 }
 
 /*********************************************************************//**
@@ -706,6 +716,7 @@ row_merge_fts_get_next_doc_item(
 	fts_psort_t*		psort_info,	/*!< in: psort_info */
 	fts_doc_item_t**	doc_item)	/*!< in/out: doc item */
 {
+	DBUG_ENTER("row_merge_fts_get_next_doc_item");
 	if (*doc_item != NULL) {
 		ut_free(*doc_item);
 	}
@@ -723,6 +734,7 @@ row_merge_fts_get_next_doc_item(
 	}
 
 	mutex_exit(&psort_info->mutex);
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -1114,6 +1126,7 @@ row_merge_write_fts_node(
 	const	fts_string_t*		word,
 	const	fts_node_t*		node)
 {
+	DBUG_ENTER("row_merge_write_fts_node");
 	dtuple_t*	tuple;
 	dfield_t*	field;
 	dberr_t		ret = DB_SUCCESS;
@@ -1149,7 +1162,7 @@ row_merge_write_fts_node(
 
 	ret = ins_ctx->btr_bulk->insert(tuple);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /********************************************************************//**
@@ -1163,6 +1176,7 @@ row_merge_write_fts_word(
 	fts_tokenizer_word_t*	word)		/*!< in: sorted and tokenized
 						word */
 {
+	DBUG_ENTER("row_merge_write_fts_word");
 	dberr_t	ret = DB_SUCCESS;
 
 	ut_ad(ins_ctx->aux_index_id == fts_select_index(
@@ -1191,7 +1205,7 @@ row_merge_write_fts_word(
 
 	ib_vector_reset(word->nodes);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*********************************************************************//**
@@ -1215,6 +1229,7 @@ row_fts_insert_tuple(
 	fts_string_t	token_word;
 	ulint		i;
 
+	DBUG_ENTER("row_fts_insert_tuple");
 	/* Get fts_node for the FTS auxillary INDEX table */
 	if (ib_vector_size(word->nodes) > 0) {
 		fts_node = static_cast<fts_node_t*>(
@@ -1241,7 +1256,7 @@ row_fts_insert_tuple(
 			row_merge_write_fts_word(ins_ctx, word);
 		}
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	/* Get the first field for the tokenized word */
@@ -1320,6 +1335,7 @@ row_fts_insert_tuple(
 
 	/* record the current Doc ID */
 	*in_doc_id = doc_id;
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -1340,6 +1356,7 @@ row_fts_sel_tree_propagate(
 	int	child_right;
 	int	selected;
 
+	DBUG_ENTER("row_fts_sel_tree_propagate");
 	/* Find which parent this value will be propagated to */
 	parent = (propogated - 1) / 2;
 
@@ -1368,7 +1385,7 @@ row_fts_sel_tree_propagate(
 
 	sel_tree[parent] = selected;
 
-	return(static_cast<int>(parent));
+	DBUG_RETURN(static_cast<int>(parent));
 }
 
 /*********************************************************************//**
@@ -1387,12 +1404,13 @@ row_fts_sel_tree_update(
 {
 	ulint	i;
 
+	DBUG_ENTER("row_fts_sel_tree_update");
 	for (i = 1; i <= height; i++) {
 		propagated = static_cast<ulint>(row_fts_sel_tree_propagate(
 			static_cast<int>(propagated), sel_tree, mrec, offsets, index));
 	}
 
-	return(sel_tree[0]);
+	DBUG_RETURN(sel_tree[0]);
 }
 
 /*********************************************************************//**
@@ -1413,6 +1431,7 @@ row_fts_build_sel_tree_level(
 	ulint	i;
 	ulint	num_item;
 
+	DBUG_ENTER("row_fts_build_sel_tree_level");
 	start = static_cast<ulint>((1 << level) - 1);
 	num_item = static_cast<ulint>(1 << level);
 
@@ -1453,6 +1472,7 @@ row_fts_build_sel_tree_level(
 
 		sel_tree[start + i] = cmp < 0 ? child_left : child_right;
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -1473,9 +1493,10 @@ row_fts_build_sel_tree(
 	int	i = 0;
 	ulint	start;
 
+	DBUG_ENTER("row_fts_build_sel_tree");
 	/* No need to build selection tree if we only have two merge threads */
 	if (fts_sort_pll_degree <= 2) {
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	while (num < fts_sort_pll_degree) {
@@ -1494,7 +1515,7 @@ row_fts_build_sel_tree(
 			sel_tree, static_cast<ulint>(i), mrec, offsets, index);
 	}
 
-	return(treelevel);
+	DBUG_RETURN(treelevel);
 }
 
 /*********************************************************************//**
@@ -1540,6 +1561,7 @@ row_fts_merge_insert(
 	roll_ptr_t		roll_ptr = 0;
 	dfield_t*		field;
 
+	DBUG_ENTER("row_fts_merge_insert");
 	ut_ad(index);
 	ut_ad(table);
 
@@ -1768,5 +1790,5 @@ exit:
 		ib::info() << "InnoDB_FTS: inserted " << count << " records";
 	}
 
-	return(error);
+	DBUG_RETURN(error);
 }

@@ -84,6 +84,7 @@ ins_node_create(
 	dict_table_t*	table,		/*!< in: table where to insert */
 	mem_heap_t*	heap)		/*!< in: mem heap where created */
 {
+	DBUG_ENTER("ins_node_create");
 	ins_node_t*	node;
 
 	node = static_cast<ins_node_t*>(
@@ -106,7 +107,7 @@ ins_node_create(
 
 	node->magic_n = INS_NODE_MAGIC_N;
 
-	return(node);
+	DBUG_RETURN(node);
 }
 
 /***********************************************************//**
@@ -120,6 +121,7 @@ ins_node_create_entry_list(
 	dict_index_t*	index;
 	dtuple_t*	entry;
 
+	DBUG_ENTER("ins_node_create_entry_list");
 	ut_ad(node->entry_sys_heap);
 
 	UT_LIST_INIT(node->entry_list, &dtuple_t::tuple_list);
@@ -138,6 +140,7 @@ ins_node_create_entry_list(
 
 		UT_LIST_ADD_LAST(node->entry_list, entry);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -155,6 +158,7 @@ row_ins_alloc_sys_fields(
 	dfield_t*		dfield;
 	byte*			ptr;
 
+	DBUG_ENTER("row_ins_alloc_sys_fields");
 	row = node->row;
 	table = node->table;
 	heap = node->entry_sys_heap;
@@ -198,6 +202,7 @@ row_ins_alloc_sys_fields(
 
 		dfield_set_data(dfield, ptr, DATA_ROLL_PTR_LEN);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -216,6 +221,7 @@ ins_node_set_new_row(
 
 	node->row = row;
 
+	DBUG_ENTER("ins_node_set_new_row");
 	mem_heap_empty(node->entry_sys_heap);
 
 	/* Create templates for index entries */
@@ -230,6 +236,7 @@ ins_node_set_new_row(
 	there again: */
 
 	node->trx_id = 0;
+	DBUG_VOID_RETURN;
 }
 
 /*******************************************************************//**
@@ -260,6 +267,7 @@ row_ins_sec_index_entry_by_modify(
 	rec_t*		rec;
 	dberr_t		err;
 
+	DBUG_ENTER("row_ins_sec_index_entry_by_modify");
 	rec = btr_cur_get_rec(cursor);
 
 	ut_ad(!dict_index_is_clust(cursor->index));
@@ -288,7 +296,7 @@ row_ins_sec_index_entry_by_modify(
 		ut_a(update->n_fields == 0);
 		ut_a(!cursor->index->is_committed());
 		ut_ad(!dict_index_is_online_ddl(cursor->index));
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	if (mode == BTR_MODIFY_LEAF) {
@@ -312,7 +320,7 @@ row_ins_sec_index_entry_by_modify(
 		ut_a(mode == BTR_MODIFY_TREE);
 		if (buf_LRU_buf_pool_running_out()) {
 
-			return(DB_LOCK_TABLE_FULL);
+			DBUG_RETURN(DB_LOCK_TABLE_FULL);
 		}
 
 		err = btr_cur_pessimistic_update(
@@ -323,7 +331,7 @@ row_ins_sec_index_entry_by_modify(
 		ut_ad(!dummy_big_rec);
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*******************************************************************//**
@@ -438,6 +446,7 @@ row_ins_cascade_ancestor_updates_table(
 {
 	que_node_t*	parent;
 
+	DBUG_ENTER("row_ins_cascade_ancestor_updates_table");
 	for (parent = que_node_get_parent(node);
 	     que_node_get_type(parent) == QUE_NODE_UPDATE;
 	     parent = que_node_get_parent(parent)) {
@@ -448,11 +457,11 @@ row_ins_cascade_ancestor_updates_table(
 
 		if (upd_node->table == table && upd_node->is_delete == FALSE) {
 
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 	}
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /*********************************************************************//**
@@ -468,6 +477,7 @@ row_ins_cascade_n_ancestors(
 	que_node_t*	parent;
 	ulint		n_ancestors = 0;
 
+	DBUG_ENTER("row_ins_cascade_n_ancestors");
 	for (parent = que_node_get_parent(node);
 	     que_node_get_type(parent) == QUE_NODE_UPDATE;
 	     parent = que_node_get_parent(parent)) {
@@ -475,7 +485,7 @@ row_ins_cascade_n_ancestors(
 		n_ancestors++;
 	}
 
-	return(n_ancestors);
+	DBUG_RETURN(n_ancestors);
 }
 
 /******************************************************************//**
@@ -520,6 +530,7 @@ row_ins_cascade_calc_update_vec(
 	ut_a(table);
 	ut_a(index);
 
+	DBUG_ENTER("row_ins_cascade_calc_update_vec");
 	/* Calculate the appropriate update vector which will set the fields
 	in the child index record to the same value (possibly padded with
 	spaces if the column is a fixed length CHAR or FIXBINARY column) as
@@ -587,7 +598,7 @@ row_ins_cascade_calc_update_vec(
 				if (dfield_is_null(&ufield->new_val)
 				    && (col->prtype & DATA_NOT_NULL)) {
 
-					return(ULINT_UNDEFINED);
+					DBUG_RETURN(ULINT_UNDEFINED);
 				}
 
 				/* If the new value would not fit in the
@@ -603,7 +614,7 @@ row_ins_cascade_calc_update_vec(
 							&ufield->new_val)))
 				    < ufield_len) {
 
-					return(ULINT_UNDEFINED);
+					DBUG_RETURN(ULINT_UNDEFINED);
 				}
 
 				/* If the parent column type has a different
@@ -647,7 +658,7 @@ row_ins_cascade_calc_update_vec(
 						    col->prtype)
 					    == DATA_MYSQL_BINARY_CHARSET_COLL) {
 						/* Do not pad BINARY columns */
-						return(ULINT_UNDEFINED);
+						DBUG_RETURN(ULINT_UNDEFINED);
 					}
 
 					row_mysql_pad_col(mbminlen,
@@ -685,7 +696,7 @@ row_ins_cascade_calc_update_vec(
 						ib::error() << "FTS Doc ID"
 							" must be larger than"
 							" 0";
-						return(ULINT_UNDEFINED);
+						DBUG_RETURN(ULINT_UNDEFINED);
 					}
 
 					if (new_doc_id < n_doc_id) {
@@ -695,7 +706,7 @@ row_ins_cascade_calc_update_vec(
 							<< " for table "
 							<< table->name;
 
-						return(ULINT_UNDEFINED);
+						DBUG_RETURN(ULINT_UNDEFINED);
 					}
 
 					*fts_col_affected = TRUE;
@@ -732,14 +743,14 @@ row_ins_cascade_calc_update_vec(
 				ib::error() << "FTS Doc ID must be updated"
 					" along with FTS indexed column for"
 					" table " << table->name;
-				return(ULINT_UNDEFINED);
+				DBUG_RETURN(ULINT_UNDEFINED);
 			}
 		}
 	}
 
 	update->n_fields = n_fields_updated;
 
-	return(n_fields_updated);
+	DBUG_RETURN(n_fields_updated);
 }
 
 /*********************************************************************//**
@@ -754,6 +765,7 @@ row_ins_set_detailed(
 {
 	ut_ad(!srv_read_only_mode);
 
+	DBUG_ENTER("row_ins_set_detailed");
 	mutex_enter(&srv_misc_tmpfile_mutex);
 	rewind(srv_misc_tmpfile);
 
@@ -768,6 +780,7 @@ row_ins_set_detailed(
 	}
 
 	mutex_exit(&srv_misc_tmpfile_mutex);
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -784,8 +797,9 @@ row_ins_foreign_trx_print(
 	ulint	n_trx_locks;
 	ulint	heap_size;
 
+	DBUG_ENTER("row_ins_foreign_trx_print");
 	if (srv_read_only_mode) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	lock_mutex_enter();
@@ -807,6 +821,7 @@ row_ins_foreign_trx_print(
 	trx_sys_mutex_exit();
 
 	ut_ad(mutex_own(&dict_foreign_err_mutex));
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -826,8 +841,9 @@ row_ins_foreign_report_err(
 	const dtuple_t*	entry)		/*!< in: index entry in the parent
 					table */
 {
+	DBUG_ENTER("row_ins_foreign_report_err");
 	if (srv_read_only_mode) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	FILE*	ef	= dict_foreign_err_file;
@@ -862,6 +878,7 @@ row_ins_foreign_report_err(
 	putc('\n', ef);
 
 	mutex_exit(&dict_foreign_err_mutex);
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -880,8 +897,9 @@ row_ins_foreign_report_add_err(
 	const dtuple_t*	entry)		/*!< in: index entry to insert in the
 					child table */
 {
+	DBUG_ENTER("row_ins_foreign_report_add_err");
 	if (srv_read_only_mode) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	FILE*	ef	= dict_foreign_err_file;
@@ -921,6 +939,7 @@ row_ins_foreign_report_add_err(
 	putc('\n', ef);
 
 	mutex_exit(&dict_foreign_err_mutex);
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -934,8 +953,10 @@ row_ins_invalidate_query_cache(
 	const char*	name)		/*!< in: table name prefixed with
 					database name and a '/' character */
 {
+	DBUG_ENTER("row_ins_invalidate_query_cache");
 	ulint	len = strlen(name) + 1;
 	innobase_invalidate_query_cache(thr_get_trx(thr), name, len);
+	DBUG_VOID_RETURN;
 }
 
 /** Fill virtual column information in cascade node for the child table.
@@ -955,6 +976,7 @@ row_ins_foreign_fill_virtual(
 	dict_foreign_t*		foreign,
 	dberr_t*		err)
 {
+	DBUG_ENTER("row_ins_foreign_fill_virtual");
 	row_ext_t*	ext;
 	THD*		thd = current_thd;
 	ulint		offsets_[REC_OFFS_NORMAL_SIZE];
@@ -1075,6 +1097,7 @@ func_exit:
 	if (v_heap) {
 		mem_heap_free(v_heap);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -1514,6 +1537,7 @@ row_ins_set_shared_rec_lock(
 {
 	dberr_t	err;
 
+	DBUG_ENTER("row_ins_set_shared_rec_lock");
 	ut_ad(rec_offs_validate(rec, index, offsets));
 
 	if (dict_index_is_clust(index)) {
@@ -1524,7 +1548,7 @@ row_ins_set_shared_rec_lock(
 			0, block, rec, index, offsets, LOCK_S, type, thr);
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*********************************************************************//**
@@ -1545,6 +1569,7 @@ row_ins_set_exclusive_rec_lock(
 {
 	dberr_t	err;
 
+	DBUG_ENTER("row_ins_set_exclusive_rec_lock");
 	ut_ad(rec_offs_validate(rec, index, offsets));
 
 	if (dict_index_is_clust(index)) {
@@ -1555,7 +1580,7 @@ row_ins_set_exclusive_rec_lock(
 			0, block, rec, index, offsets, LOCK_X, type, thr);
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /* Decrement a counter in the destructor. */
@@ -1951,6 +1976,7 @@ row_ins_check_foreign_constraints(
 
 	trx = thr_get_trx(thr);
 
+	DBUG_ENTER("row_ins_check_foreign_constraints");
 	DEBUG_SYNC_C_IF_THD(thr_get_trx(thr)->mysql_thd,
 			    "foreign_constraint_check_for_ins");
 
@@ -2007,12 +2033,12 @@ row_ins_check_foreign_constraints(
 
 			if (err != DB_SUCCESS) {
 
-				return(err);
+				DBUG_RETURN(err);
 			}
 		}
 	}
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /***************************************************************//**
@@ -2034,6 +2060,7 @@ row_ins_dupl_error_with_rec(
 	ulint	n_unique;
 	ulint	i;
 
+	DBUG_ENTER("row_ins_dupl_error_with_rec");
 	ut_ad(rec_offs_validate(rec, index, offsets));
 
 	n_unique = dict_index_get_n_unique(index);
@@ -2044,7 +2071,7 @@ row_ins_dupl_error_with_rec(
 
 	if (matched_fields < n_unique) {
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	/* In a unique secondary index we allow equal key values if they
@@ -2055,12 +2082,12 @@ row_ins_dupl_error_with_rec(
 		for (i = 0; i < n_unique; i++) {
 			if (dfield_is_null(dtuple_get_nth_field(entry, i))) {
 
-				return(FALSE);
+				DBUG_RETURN(FALSE);
 			}
 		}
 	}
 
-	return(!rec_get_deleted_flag(rec, rec_offs_comp(offsets)));
+	DBUG_RETURN(!rec_get_deleted_flag(rec, rec_offs_comp(offsets)));
 }
 
 /***************************************************************//**
@@ -2465,7 +2492,8 @@ row_ins_must_modify_rec(
 	A clustered index node pointer contains index->n_unique first fields,
 	and a secondary index node pointer contains all index fields. */
 
-	return(cursor->low_match
+	DBUG_ENTER("row_ins_must_modify_rec");
+	DBUG_RETURN(cursor->low_match
 	       >= dict_index_get_n_unique_in_tree(cursor->index)
 	       && !page_rec_is_infimum(btr_cur_get_rec(cursor)));
 }
@@ -2862,6 +2890,7 @@ row_ins_sec_mtr_start_and_check_if_aborted(
 	bool		check,
 	ulint		search_mode)
 {
+	DBUG_ENTER("row_ins_sec_mtr_start_and_check_if_aborted");
 	ut_ad(!dict_index_is_clust(index));
 	ut_ad(mtr->is_named_space(index->space));
 
@@ -2872,7 +2901,7 @@ row_ins_sec_mtr_start_and_check_if_aborted(
 	mtr->set_log_mode(log_mode);
 
 	if (!check) {
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	if (search_mode & BTR_ALREADY_S_LATCHED) {
@@ -2885,15 +2914,15 @@ row_ins_sec_mtr_start_and_check_if_aborted(
 	case ONLINE_INDEX_ABORTED:
 	case ONLINE_INDEX_ABORTED_DROPPED:
 		ut_ad(!index->is_committed());
-		return(true);
+		DBUG_RETURN(true);
 	case ONLINE_INDEX_COMPLETE:
-		return(false);
+		DBUG_RETURN(false);
 	case ONLINE_INDEX_CREATION:
 		break;
 	}
 
 	ut_error;
-	return(true);
+	DBUG_RETURN(true);
 }
 
 /***************************************************************//**
@@ -3239,6 +3268,7 @@ row_ins_index_entry_big_rec_func(
 	rec_t*		rec;
 	dberr_t		error;
 
+	DBUG_ENTER("row_ins_index_entry_big_rec_func");
 	ut_ad(dict_index_is_clust(index));
 
 	DEBUG_SYNC_C_IF_THD(thd, "before_row_ins_extern_latch");
@@ -3269,7 +3299,7 @@ row_ins_index_entry_big_rec_func(
 
 	btr_pcur_close(&pcur);
 
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /***************************************************************//**
@@ -3385,16 +3415,17 @@ row_ins_sec_index_entry(
 	mem_heap_t*	offsets_heap;
 	mem_heap_t*	heap;
 
+	DBUG_ENTER("row_ins_sec_index_entry");
 	DBUG_EXECUTE_IF("row_ins_sec_index_entry_timeout", {
 			DBUG_SET("-d,row_ins_sec_index_entry_timeout");
-			return(DB_LOCK_WAIT);});
+			DBUG_RETURN(DB_LOCK_WAIT);});
 
 	if (!index->table->foreign_set.empty()) {
 		err = row_ins_check_foreign_constraints(index->table, index,
 							entry, thr);
 		if (err != DB_SUCCESS) {
 
-			return(err);
+			DBUG_RETURN(err);
 		}
 	}
 
@@ -3442,7 +3473,7 @@ row_ins_sec_index_entry(
 
 	mem_heap_free(heap);
 	mem_heap_free(offsets_heap);
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***************************************************************//**
@@ -3461,14 +3492,15 @@ row_ins_index_entry(
 {
 	ut_ad(thr_get_trx(thr)->id != 0);
 
+	DBUG_ENTER("row_ins_index_entry");
 	DBUG_EXECUTE_IF("row_ins_index_entry_timeout", {
 			DBUG_SET("-d,row_ins_index_entry_timeout");
-			return(DB_LOCK_WAIT);});
+			DBUG_RETURN(DB_LOCK_WAIT);});
 
 	if (dict_index_is_clust(index)) {
-		return(row_ins_clust_index_entry(index, entry, thr, 0, false));
+		DBUG_RETURN(row_ins_clust_index_entry(index, entry, thr, 0, false));
 	} else {
-		return(row_ins_sec_index_entry(index, entry, thr, false));
+		DBUG_RETURN(row_ins_sec_index_entry(index, entry, thr, false));
 	}
 }
 
@@ -3487,6 +3519,7 @@ row_ins_spatial_index_entry_set_mbr_field(
 	ulint		dlen = 0;
 	double		mbr[SPDIMS * 2];
 
+	DBUG_ENTER("row_ins_spatial_index_entry_set_mbr_field");
 	/* This must be a GEOMETRY datatype */
 	ut_ad(DATA_GEOMETRY_MTYPE(field->type.mtype));
 
@@ -3500,6 +3533,7 @@ row_ins_spatial_index_entry_set_mbr_field(
 
 	/* Set mbr as index entry data */
 	dfield_write_mbr(field, mbr);
+	DBUG_VOID_RETURN;
 }
 
 /** Sets the values of the dtuple fields in entry from the values of appropriate
@@ -3519,6 +3553,7 @@ row_ins_index_entry_set_vals(
 	ulint	i;
 	ulint	num_v = dtuple_get_n_v_fields(entry);
 
+	DBUG_ENTER("row_ins_index_entry_set_vals");
 	n_fields = dtuple_get_n_fields(entry);
 
 	for (i = 0; i < n_fields + num_v; i++) {
@@ -3574,7 +3609,7 @@ row_ins_index_entry_set_vals(
 		if ((i == 0) && dict_index_is_spatial(index)) {
 			if (!row_field->data
 			    || row_field->len < GEO_DATA_HEADER_SIZE) {
-				return(DB_CANT_CREATE_GEOMETRY_OBJECT);
+				DBUG_RETURN(DB_CANT_CREATE_GEOMETRY_OBJECT);
 			}
 			row_ins_spatial_index_entry_set_mbr_field(
 				field, row_field);
@@ -3588,7 +3623,7 @@ row_ins_index_entry_set_vals(
 		}
 	}
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /***********************************************************//**
@@ -3634,6 +3669,7 @@ row_ins_alloc_row_id_step(
 {
 	row_id_t	row_id;
 
+	DBUG_ENTER("row_ins_alloc_row_id_step");
 	ut_ad(node->state == INS_NODE_ALLOC_ROW_ID);
 
 	if (dict_index_is_unique(dict_table_get_first_index(node->table))) {
@@ -3648,6 +3684,7 @@ row_ins_alloc_row_id_step(
 	row_id = dict_sys_get_new_row_id();
 
 	dict_sys_write_row_id(node->row_id_buf, row_id);
+	DBUG_VOID_RETURN;
 }
 
 /***********************************************************//**
@@ -3667,6 +3704,7 @@ row_ins_get_row_from_values(
 	it is safe to use them until we fetch from select again: therefore
 	we can just copy the pointers */
 
+	DBUG_ENTER("row_ins_get_row_from_values");
 	row = node->row;
 
 	i = 0;
@@ -3681,6 +3719,7 @@ row_ins_get_row_from_values(
 		i++;
 		list_node = que_node_get_next(list_node);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /***********************************************************//**
@@ -3696,6 +3735,7 @@ row_ins_get_row_from_select(
 	dtuple_t*	row;
 	ulint		i;
 
+	DBUG_ENTER("row_ins_get_row_from_select");
 	/* The field values are copied in the buffers of the select node and
 	it is safe to use them until we fetch from select again: therefore
 	we can just copy the pointers */
@@ -3712,6 +3752,7 @@ row_ins_get_row_from_select(
 		i++;
 		list_node = que_node_get_next(list_node);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /***********************************************************//**

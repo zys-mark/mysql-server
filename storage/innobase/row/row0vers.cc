@@ -494,6 +494,7 @@ row_vers_build_clust_v_col(
 	dict_index_t*	index,
 	mem_heap_t*	heap)
 {
+	DBUG_ENTER("row_vers_build_clust_v_col");
 	mem_heap_t*	local_heap = NULL;
 	for (ulint i = 0; i < dict_index_get_n_fields(index); i++) {
 		const dict_field_t* ind_field = dict_index_get_nth_field(
@@ -515,6 +516,7 @@ row_vers_build_clust_v_col(
 	if (local_heap) {
 		mem_heap_free(local_heap);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Build latest virtual column data from undo log
@@ -542,6 +544,7 @@ row_vers_build_cur_vrow_low(
 	const dtuple_t**vrow,
 	mtr_t*		mtr)
 {
+	DBUG_ENTER("row_vers_build_cur_vrow_low");
 	const rec_t*	version;
 	rec_t*		prev_version;
 	mem_heap_t*	heap = NULL;
@@ -624,6 +627,7 @@ row_vers_build_cur_vrow_low(
 	}
 
 	mem_heap_free(heap);
+	DBUG_VOID_RETURN;
 }
 
 /** Check a virtual column value index secondary virtual index matches
