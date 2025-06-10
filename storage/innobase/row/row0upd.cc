@@ -154,7 +154,7 @@ row_upd_index_is_referenced(
 	ibool		is_referenced	= FALSE;
 
 	if (table->referenced_set.empty()) {
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	if (trx->dict_operation_lock_mode == 0) {
@@ -359,6 +359,7 @@ row_upd_rec_sys_fields_in_recovery(
 	trx_id_t	trx_id,	/*!< in: transaction id */
 	roll_ptr_t	roll_ptr)/*!< in: roll ptr of the undo log record */
 {
+	DBUG_ENTER("row_upd_rec_sys_fields_in_recovery");
 	ut_ad(rec_offs_validate(rec, NULL, offsets));
 
 	if (page_zip) {
@@ -376,6 +377,7 @@ row_upd_rec_sys_fields_in_recovery(
 		trx_write_trx_id(field, trx_id);
 		trx_write_roll_ptr(field + DATA_TRX_ID_LEN, roll_ptr);
 	}
+	DBUG_VOID_RETURN;
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -437,6 +439,7 @@ row_upd_changes_field_size_or_external(
 	ulint			n_fields;
 	ulint			i;
 
+	DBUG_ENTER("row_upd_changes_field_size_or_external");
 	ut_ad(rec_offs_validate(NULL, index, offsets));
 	n_fields = upd_get_n_fields(update);
 
@@ -483,11 +486,11 @@ row_upd_changes_field_size_or_external(
 		if (dfield_is_ext(new_val) || old_len != new_len
 		    || rec_offs_nth_extern(offsets, upd_field->field_no)) {
 
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 	}
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /***********************************************************//**
@@ -504,6 +507,7 @@ row_upd_changes_disowned_external(
 	ulint                   n_fields;
 	ulint			i;
 
+	DBUG_ENTER("row_upd_changes_disowned_external");
 	n_fields = upd_get_n_fields(update);
 
 	for (i = 0; i < n_fields; i++) {
@@ -523,11 +527,11 @@ row_upd_changes_disowned_external(
 			    + new_len - BTR_EXTERN_FIELD_REF_SIZE;
 
 		if (field_ref[BTR_EXTERN_LEN] & BTR_EXTERN_OWNER_FLAG) {
-			return(true);
+			DBUG_RETURN(true);
 		}
 	}
 
-	return(false);
+	DBUG_RETURN(false);
 }
 #endif /* !UNIV_HOTBACKUP */
 
@@ -552,6 +556,7 @@ row_upd_rec_in_place(
 	ulint			n_fields;
 	ulint			i;
 
+	DBUG_ENTER("row_upd_rec_in_place");
 	ut_ad(rec_offs_validate(rec, index, offsets));
 
 	if (rec_offs_comp(offsets)) {
@@ -583,6 +588,7 @@ row_upd_rec_in_place(
 	if (page_zip) {
 		page_zip_write_rec(page_zip, rec, index, offsets, 0);
 	}
+	DBUG_VOID_RETURN;
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -633,16 +639,17 @@ row_upd_parse_sys_vals(
 	trx_id_t*	trx_id,	/*!< out: trx id */
 	roll_ptr_t*	roll_ptr)/*!< out: roll ptr */
 {
+	DBUG_ENTER("row_upd_parse_sys_vals");
 	*pos = mach_parse_compressed(&ptr, end_ptr);
 
 	if (ptr == NULL) {
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	if (end_ptr < ptr + DATA_ROLL_PTR_LEN) {
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	*roll_ptr = trx_read_roll_ptr(ptr);
@@ -650,7 +657,7 @@ row_upd_parse_sys_vals(
 
 	*trx_id = mach_u64_parse_compressed(&ptr, end_ptr);
 
-	return(const_cast<byte*>(ptr));
+	DBUG_RETURN(const_cast<byte*>(ptr));
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -755,9 +762,10 @@ row_upd_index_parse(
 	ulint		info_bits;
 	ulint		i;
 
+	DBUG_ENTER("row_upd_index_parse");
 	if (end_ptr < ptr + 1) {
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	info_bits = mach_read_from_1(ptr);
@@ -766,7 +774,7 @@ row_upd_index_parse(
 
 	if (ptr == NULL) {
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	update = upd_create(n_fields, heap);
@@ -781,7 +789,7 @@ row_upd_index_parse(
 
 		if (ptr == NULL) {
 
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 
 		/* Check if this is a virtual column, mark the prtype
@@ -797,14 +805,14 @@ row_upd_index_parse(
 
 		if (ptr == NULL) {
 
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 
 		if (len != UNIV_SQL_NULL) {
 
 			if (end_ptr < ptr + len) {
 
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 
 			dfield_set_data(new_val,
@@ -817,7 +825,7 @@ row_upd_index_parse(
 
 	*update_out = update;
 
-	return(const_cast<byte*>(ptr));
+	DBUG_RETURN(const_cast<byte*>(ptr));
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -843,6 +851,7 @@ row_upd_build_sec_rec_difference_binary(
 	ulint		n_diff;
 	ulint		i;
 
+	DBUG_ENTER("row_upd_build_sec_rec_difference_binary");
 	/* This function is used only for a secondary index */
 	ut_a(!dict_index_is_clust(index));
 	ut_ad(rec_offs_validate(rec, index, offsets));
@@ -884,7 +893,7 @@ row_upd_build_sec_rec_difference_binary(
 
 	update->n_fields = n_diff;
 
-	return(update);
+	DBUG_RETURN(update);
 }
 
 /** Builds an update vector from those fields, excluding the roll ptr and
@@ -1081,13 +1090,14 @@ row_upd_ext_fetch(
 {
 	byte*	buf = static_cast<byte*>(mem_heap_alloc(heap, *len));
 
+	DBUG_ENTER("row_upd_ext_fetch");
 	*len = btr_copy_externally_stored_field_prefix(
 		buf, *len, page_size, data, local_len);
 
 	/* We should never update records containing a half-deleted BLOB. */
 	ut_a(*len);
 
-	return(buf);
+	DBUG_RETURN(buf);
 }
 
 /** Replaces the new column value stored in the update vector in
@@ -1112,10 +1122,11 @@ row_upd_index_replace_new_col_val(
 	ulint		len;
 	const byte*	data;
 
+	DBUG_ENTER("row_upd_index_replace_new_col_val");
 	dfield_copy_data(dfield, &uf->new_val);
 
 	if (dfield_is_null(dfield)) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	len = dfield_get_len(dfield);
@@ -1146,7 +1157,7 @@ row_upd_index_replace_new_col_val(
 			dfield_dup(dfield, heap);
 		}
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	switch (uf->orig_len) {
@@ -1185,6 +1196,7 @@ row_upd_index_replace_new_col_val(
 		dfield_set_ext(dfield);
 		break;
 	}
+	DBUG_VOID_RETURN;
 }
 
 /***********************************************************//**
@@ -1270,6 +1282,7 @@ row_upd_index_replace_new_col_vals(
 	mem_heap_t*	heap)	/*!< in: memory heap for allocating and
 				copying the new values */
 {
+	DBUG_ENTER("row_upd_index_replace_new_col_vals");
 	ulint			i;
 	const dict_index_t*	clust_index
 		= dict_table_get_first_index(index->table);
@@ -1304,6 +1317,7 @@ row_upd_index_replace_new_col_vals(
 				field, col, uf, heap, page_size);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Replaces the virtual column values stored in the update vector.
@@ -1319,6 +1333,7 @@ row_upd_set_vcol_data(
 	ulint                   len,
 	dict_v_col_t*		vcol)
 {
+	DBUG_ENTER("row_upd_set_vcol_data");
 	dfield_t*	dfield = dtuple_get_nth_v_field(row, vcol->v_pos);
 
 	if (dfield_get_type(dfield)->mtype == DATA_MISSING) {
@@ -1326,6 +1341,7 @@ row_upd_set_vcol_data(
 
 		dfield_set_data(dfield, field, len);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Replaces the virtual column values stored in a dtuple with that of
@@ -1801,6 +1817,7 @@ row_upd_changes_some_index_ord_field_binary(
 	dict_index_t*	index;
 	ulint		i;
 
+	DBUG_ENTER("row_upd_changes_some_index_ord_field_binary");
 	index = dict_table_get_first_index(table);
 
 	for (i = 0; i < upd_get_n_fields(update); i++) {
@@ -1811,17 +1828,17 @@ row_upd_changes_some_index_ord_field_binary(
 			if (dict_table_get_nth_v_col(index->table,
 						     upd_field->field_no)
 			    ->m_col.ord_part) {
-				return(TRUE);
+				DBUG_RETURN(TRUE);
 			}
 		} else {
 			if (dict_field_get_col(dict_index_get_nth_field(
 				index, upd_field->field_no))->ord_part) {
-				return(TRUE);
+				DBUG_RETURN(TRUE);
 			}
 		}
 	}
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /***********************************************************//**
@@ -1837,13 +1854,14 @@ row_upd_changes_doc_id(
 	dict_index_t*	clust_index;
 	fts_t*		fts = table->fts;
 
+	DBUG_ENTER("row_upd_changes_doc_id");
 	clust_index = dict_table_get_first_index(table);
 
 	/* Convert from index-specific column number to table-global
 	column number. */
 	col_no = dict_index_get_nth_col_no(clust_index, upd_field->field_no);
 
-	return(col_no == fts->doc_col);
+	DBUG_RETURN(col_no == fts->doc_col);
 }
 /***********************************************************//**
 Checks if an FTS indexed column is affected by an UPDATE.
@@ -1855,13 +1873,14 @@ row_upd_changes_fts_column(
 	dict_table_t*	table,		/*!< in: table */
 	upd_field_t*	upd_field)	/*!< in: field to check */
 {
+	DBUG_ENTER("row_upd_changes_fts_column");
 	ulint		col_no;
 	dict_index_t*	clust_index;
 	fts_t*		fts = table->fts;
 
 	if (upd_fld_is_virtual_col(upd_field)) {
 		col_no = upd_field->field_no;
-		return(dict_table_is_fts_column(fts->indexes, col_no, true));
+		DBUG_RETURN(dict_table_is_fts_column(fts->indexes, col_no, true));
 	} else {
 		clust_index = dict_table_get_first_index(table);
 
@@ -1869,7 +1888,7 @@ row_upd_changes_fts_column(
 		column number. */
 		col_no = dict_index_get_nth_col_no(clust_index,
 						   upd_field->field_no);
-		return(dict_table_is_fts_column(fts->indexes, col_no, false));
+		DBUG_RETURN(dict_table_is_fts_column(fts->indexes, col_no, false));
 	}
 
 }
@@ -1892,6 +1911,7 @@ row_upd_changes_first_fields_binary(
 	ulint		i, j;
 	dict_index_t*	clust_index;
 
+	DBUG_ENTER("row_upd_changes_first_fields_binary");
 	ut_ad(update && index);
 	ut_ad(n <= dict_index_get_n_fields(index));
 
@@ -1920,12 +1940,12 @@ row_upd_changes_first_fields_binary(
 				    dtuple_get_nth_field(entry, i),
 				    &upd_field->new_val, 0)) {
 
-				return(TRUE);
+				DBUG_RETURN(TRUE);
 			}
 		}
 	}
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /*********************************************************************//**
@@ -1992,6 +2012,7 @@ void
 row_upd_dup_v_new_vals(
 	const upd_t*	update)
 {
+	DBUG_ENTER("row_upd_dup_v_new_vals");
 	ut_ad(update != NULL);
 
 	for (ulint j = 0; j < upd_get_n_fields(update); j++) {
@@ -2000,6 +2021,7 @@ row_upd_dup_v_new_vals(
 			dfield_dup(&upd_field->new_val, update->heap);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Stores to the heap the virtual columns that need for any indexes
@@ -2015,6 +2037,7 @@ row_upd_store_v_row(
 	THD*		thd,
 	TABLE*		mysql_table)
 {
+	DBUG_ENTER("row_upd_store_v_row");
 	mem_heap_t*	heap = NULL;
 	dict_index_t*	index = dict_table_get_first_index(node->table);
 	bool		new_val_v_cols_dup = false;
@@ -2093,6 +2116,7 @@ row_upd_store_v_row(
 	if (heap) {
 		mem_heap_free(heap);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Stores to the heap the row on which the node->pcur is positioned.
@@ -2682,6 +2706,7 @@ row_upd_clust_rec(
 	que_thr_t*	thr,	/*!< in: query thread */
 	mtr_t*		mtr)	/*!< in: mtr; gets committed here */
 {
+	DBUG_ENTER("row_upd_clust_rec");
 	mem_heap_t*	heap		= NULL;
 	big_rec_t*	big_rec		= NULL;
 	btr_pcur_t*	pcur;
@@ -2810,7 +2835,7 @@ func_exit:
 		dtuple_big_rec_free(big_rec);
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***********************************************************//**
@@ -2948,7 +2973,7 @@ row_upd_clust_step(
 
 		mtr_commit(&mtr);
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	/* If this is a row in SYS_INDEXES table of the data dictionary,
@@ -2974,7 +2999,7 @@ row_upd_clust_step(
 
 			mtr_commit(&mtr);
 
-			return(err);
+			DBUG_RETURN(err);
 		}
 	}
 
