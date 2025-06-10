@@ -296,13 +296,14 @@ row_log_online_op(
 	ulint		avail_size;
 	row_log_t*	log;
 
+	DBUG_ENTER("row_log_online_op");
 	ut_ad(dtuple_validate(tuple));
 	ut_ad(dtuple_get_n_fields(tuple) == dict_index_get_n_fields(index));
 	ut_ad(rw_lock_own(dict_index_get_lock(index), RW_LOCK_S)
 	      || rw_lock_own(dict_index_get_lock(index), RW_LOCK_X));
 
 	if (dict_index_is_corrupted(index)) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	ut_ad(dict_index_is_online_ddl(index));
@@ -415,6 +416,7 @@ write_failed:
 	UNIV_MEM_INVALID(log->tail.buf, sizeof log->tail.buf);
 err_exit:
 	mutex_exit(&log->mutex);
+	DBUG_VOID_RETURN;
 }
 
 /******************************************************//**
@@ -426,9 +428,10 @@ row_log_table_get_error(
 	const dict_index_t*	index)	/*!< in: clustered index of a table
 					that is being rebuilt online */
 {
+	DBUG_ENTER("row_log_table_get_error");
 	ut_ad(dict_index_is_clust(index));
 	ut_ad(dict_index_is_online_ddl(index));
-	return(index->online_log->error);
+	DBUG_RETURN(index->online_log->error);
 }
 
 /******************************************************//**
@@ -442,6 +445,7 @@ row_log_table_open(
 	ulint		size,	/*!< in: size of log record */
 	ulint*		avail)	/*!< out: available size for log record */
 {
+	DBUG_ENTER("row_log_table_open");
 	mutex_enter(&log->mutex);
 
 	UNIV_MEM_INVALID(log->tail.buf, sizeof log->tail.buf);
@@ -449,7 +453,7 @@ row_log_table_open(
 	if (log->error != DB_SUCCESS) {
 err_exit:
 		mutex_exit(&log->mutex);
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	if (!row_log_block_allocate(log->tail)) {
@@ -461,9 +465,9 @@ err_exit:
 	*avail = srv_sort_buf_size - log->tail.bytes;
 
 	if (size > *avail) {
-		return(log->tail.buf);
+		DBUG_RETURN(log->tail.buf);
 	} else {
-		return(log->tail.block + log->tail.bytes);
+		DBUG_RETURN(log->tail.block + log->tail.bytes);
 	}
 }
 
@@ -480,6 +484,7 @@ row_log_table_close_func(
 	ulint		size,	/*!< in: size of log record */
 	ulint		avail)	/*!< in: available size for log record */
 {
+	DBUG_ENTER("row_log_table_close_func");
 	ut_ad(mutex_own(&log->mutex));
 
 	if (size >= avail) {
@@ -532,6 +537,7 @@ write_failed:
 	UNIV_MEM_INVALID(log->tail.buf, sizeof log->tail.buf);
 err_exit:
 	mutex_exit(&log->mutex);
+	DBUG_VOID_RETURN;
 }
 
 #ifdef UNIV_DEBUG
@@ -552,7 +558,8 @@ row_log_col_is_indexed(
 	const dict_index_t*	index,
 	ulint			v_no)
 {
-	return(dict_table_get_nth_v_col(
+	DBUG_ENTER("row_log_col_is_indexed");
+	DBUG_RETURN(dict_table_get_nth_v_col(
 		index->online_log->table, v_no)->m_col.ord_part);
 }
 
@@ -1095,8 +1102,10 @@ row_log_table_update(
 	const dtuple_t*	old_v_row)/*!< in: dtuple contains the old virtual
 				columns */
 {
+	DBUG_ENTER("row_log_table_update");
 	row_log_table_low(rec, new_v_row, old_v_row, index, offsets,
 			  false, old_pk);
+    DBUG_VOID_RETURN;
 }
 
 /** Gets the old table column of a PRIMARY KEY column.
@@ -1112,13 +1121,14 @@ row_log_table_get_pk_old_col(
 	const ulint*		col_map,
 	ulint			col_no)
 {
+	DBUG_ENTER("row_log_table_get_pk_old_col");
 	for (ulint i = 0; i < table->n_cols; i++) {
 		if (col_no == col_map[i]) {
-			return(dict_table_get_nth_col(table, i));
+			DBUG_RETURN(dict_table_get_nth_col(table, i));
 		}
 	}
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /** Maps an old table column of a PRIMARY KEY column.
@@ -1151,10 +1161,11 @@ row_log_table_get_pk_col(
 	const byte*	field;
 	ulint		len;
 
+	DBUG_ENTER("row_log_table_get_pk_col");
 	field = rec_get_nth_field(rec, offsets, i, &len);
 
 	if (len == UNIV_SQL_NULL) {
-		return(DB_INVALID_NULL);
+		DBUG_RETURN(DB_INVALID_NULL);
 	}
 
 	if (rec_offs_nth_extern(offsets, i)) {
@@ -1174,7 +1185,7 @@ row_log_table_get_pk_col(
 		len = btr_copy_externally_stored_field_prefix(
 			blob_field, field_len, page_size, field, len);
 		if (len >= max_len + 1) {
-			return(DB_TOO_BIG_INDEX_COL);
+			DBUG_RETURN(DB_TOO_BIG_INDEX_COL);
 		}
 
 		dfield_set_data(dfield, blob_field, len);
@@ -1182,7 +1193,7 @@ row_log_table_get_pk_col(
 		dfield_set_data(dfield, mem_heap_dup(heap, field, len), len);
 	}
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /******************************************************//**
@@ -1205,6 +1216,7 @@ row_log_table_get_pk(
 	dtuple_t*	tuple	= NULL;
 	row_log_t*	log	= index->online_log;
 
+	DBUG_ENTER("row_log_table_get_pk");
 	ut_ad(dict_index_is_clust(index));
 	ut_ad(dict_index_is_online_ddl(index));
 	ut_ad(!offsets || rec_offs_validate(rec, index, offsets));
@@ -1242,7 +1254,7 @@ row_log_table_get_pk(
 			       DATA_TRX_ID_LEN + DATA_ROLL_PTR_LEN);
 		}
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	mutex_enter(&log->mutex);
@@ -1375,7 +1387,7 @@ err_exit:
 
 func_exit:
 	mutex_exit(&log->mutex);
-	return(tuple);
+	DBUG_RETURN(tuple);
 }
 
 /******************************************************//**
@@ -1404,6 +1416,7 @@ row_log_table_blob_free(
 	dict_index_t*	index,	/*!< in/out: clustered index, X-latched */
 	ulint		page_no)/*!< in: starting page number of the BLOB */
 {
+	DBUG_ENTER("row_log_table_blob_free");
 	ut_ad(dict_index_is_clust(index));
 	ut_ad(dict_index_is_online_ddl(index));
 	ut_ad(rw_lock_own_flagged(
@@ -1412,7 +1425,7 @@ row_log_table_blob_free(
 	ut_ad(page_no != FIL_NULL);
 
 	if (index->online_log->error != DB_SUCCESS) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	page_no_map*	blobs	= index->online_log->blobs;
@@ -1451,6 +1464,7 @@ row_log_table_blob_alloc(
 	ut_ad(dict_index_is_clust(index));
 	ut_ad(dict_index_is_online_ddl(index));
 
+	DBUG_ENTER("row_log_table_blob_alloc");
 	ut_ad(rw_lock_own_flagged(
 			&index->lock,
 			RW_LOCK_FLAG_X | RW_LOCK_FLAG_SX));
@@ -1458,7 +1472,7 @@ row_log_table_blob_alloc(
 	ut_ad(page_no != FIL_NULL);
 
 	if (index->online_log->error != DB_SUCCESS) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	/* Only track allocations if the same page has been freed
@@ -1471,6 +1485,7 @@ row_log_table_blob_alloc(
 			p->second.blob_alloc(index->online_log->tail.total);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /******************************************************//**
@@ -1490,6 +1505,7 @@ row_log_table_apply_convert_mrec(
 						DB_MISSING_HISTORY or
 						reason of failure */
 {
+	DBUG_ENTER("row_log_table_apply_convert_mrec");
 	dtuple_t*	row;
 	ulint		num_v = dict_table_get_n_v_cols(log->table);
 
@@ -1596,7 +1612,7 @@ blob_done:
 				table. */
 				ut_ad(0);
 				*error = DB_CORRUPTION;
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 		}
 
@@ -1618,7 +1634,7 @@ blob_done:
 		    && dfield_is_null(dfield)) {
 			/* We got a NULL value for a NOT NULL column. */
 			*error = DB_INVALID_NULL;
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 
 		/* Adjust the DATA_NOT_NULL flag in the parsed row. */
@@ -1636,7 +1652,7 @@ blob_done:
 				     &(log->col_map[log->n_old_col]));
 	}
 
-	return(row);
+	DBUG_RETURN(row);
 }
 
 /******************************************************//**
@@ -1656,6 +1672,7 @@ row_log_table_apply_insert_low(
 	row_merge_dup_t*	dup)		/*!< in/out: for reporting
 						duplicate key errors */
 {
+	DBUG_ENTER("row_log_table_apply_insert_low");
 	dberr_t		error;
 	dtuple_t*	entry;
 	const row_log_t*log	= dup->index->online_log;
@@ -1687,9 +1704,9 @@ row_log_table_apply_insert_low(
 		break;
 	case DB_SUCCESS_LOCKED_REC:
 		/* The row had already been copied to the table. */
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	default:
-		return(error);
+		DBUG_RETURN(error);
 	}
 
 	do {
@@ -1715,7 +1732,7 @@ row_log_table_apply_insert_low(
 
 	} while (error == DB_SUCCESS);
 
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /******************************************************//**
@@ -1735,6 +1752,7 @@ row_log_table_apply_insert(
 						duplicate key errors */
 	trx_id_t		trx_id)		/*!< in: DB_TRX_ID of mrec */
 {
+	DBUG_ENTER("row_log_table_apply_insert");
 	const row_log_t*log	= dup->index->online_log;
 	dberr_t		error;
 	const dtuple_t*	row	= row_log_table_apply_convert_mrec(
@@ -1749,7 +1767,7 @@ row_log_table_apply_insert(
 		We can simply skip the insert: the subsequent
 		ROW_T_DELETE will be ignored, or a ROW_T_UPDATE will
 		be interpreted as ROW_T_INSERT. */
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	case DB_SUCCESS:
 		ut_ad(row != NULL);
 		break;
@@ -1757,7 +1775,7 @@ row_log_table_apply_insert(
 		ut_ad(0);
 	case DB_INVALID_NULL:
 		ut_ad(row == NULL);
-		return(error);
+		DBUG_RETURN(error);
 	}
 
 	error = row_log_table_apply_insert_low(
@@ -1767,7 +1785,7 @@ row_log_table_apply_insert(
 		version of the table. */
 		innobase_row_to_mysql(dup->table, log->table, row);
 	}
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /******************************************************//**
@@ -1788,6 +1806,7 @@ row_log_table_apply_delete_low(
 	mtr_t*			mtr)		/*!< in/out: mini-transaction,
 						will be committed */
 {
+	DBUG_ENTER("row_log_table_apply_delete_low");
 	dberr_t		error;
 	row_ext_t*	ext;
 	dtuple_t*	row;
@@ -1823,7 +1842,7 @@ row_log_table_apply_delete_low(
 	mtr_commit(mtr);
 
 	if (error != DB_SUCCESS) {
-		return(error);
+		DBUG_RETURN(error);
 	}
 
 	while ((index = dict_table_get_next_index(index)) != NULL) {
@@ -1862,7 +1881,7 @@ flag_ok:
 			this thread only, and all indexes should be
 			updated in sync. */
 			mtr_commit(mtr);
-			return(DB_INDEX_CORRUPT);
+			DBUG_RETURN(DB_INDEX_CORRUPT);
 		}
 
 		btr_cur_pessimistic_delete(&error, FALSE,
@@ -1871,7 +1890,7 @@ flag_ok:
 		mtr_commit(mtr);
 	}
 
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /******************************************************//**
@@ -1895,6 +1914,7 @@ row_log_table_apply_delete(
 						info, or NULL */
 	ulint			ext_size)	/*!< in: external field size */
 {
+	DBUG_ENTER("row_log_table_apply_delete");
 	dict_table_t*	new_table = log->table;
 	dict_index_t*	index = dict_table_get_first_index(new_table);
 	dtuple_t*	old_pk;
@@ -1955,7 +1975,7 @@ all_done:
 		ROW_T_INSERT was skipped or
 		ROW_T_UPDATE was interpreted as ROW_T_DELETE
 		due to BLOBs having been freed by rollback. */
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	offsets = rec_get_offsets(btr_pcur_get_rec(&pcur), index, NULL,
@@ -2007,7 +2027,7 @@ all_done:
 				     &(log->col_map[log->n_old_col]));
         }
 
-	return(row_log_table_apply_delete_low(&pcur, old_pk,
+	DBUG_RETURN(row_log_table_apply_delete_low(&pcur, old_pk,
 					      offsets, save_ext,
 					      heap, &mtr));
 }
@@ -2036,6 +2056,7 @@ row_log_table_apply_update(
 						of the old value,
 						or PRIMARY KEY if same_pk */
 {
+	DBUG_ENTER("row_log_table_apply_update");
 	const row_log_t*log	= dup->index->online_log;
 	const dtuple_t*	row;
 	dict_index_t*	index	= dict_table_get_first_index(log->table);
@@ -2075,7 +2096,7 @@ row_log_table_apply_update(
 		ut_ad(0);
 	case DB_INVALID_NULL:
 		ut_ad(row == NULL);
-		return(error);
+		DBUG_RETURN(error);
 	}
 
 	mtr_start(&mtr);
@@ -2158,7 +2179,7 @@ func_exit_committed:
 			innobase_row_to_mysql(dup->table, log->table, row);
 		}
 
-		return(error);
+		DBUG_RETURN(error);
 	}
 
 	/* Prepare to update (or delete) the record. */
@@ -2342,7 +2363,7 @@ func_exit_committed:
 		entry = row_build_index_entry(old_row, old_ext, index, heap);
 		if (!entry) {
 			ut_ad(0);
-			return(DB_CORRUPTION);
+			DBUG_RETURN(DB_CORRUPTION);
 		}
 
 		mtr_start(&mtr);
@@ -2409,6 +2430,7 @@ row_log_table_apply_op(
 	ulint*			offsets)	/*!< in/out: work area
 						for parsing mrec */
 {
+	DBUG_ENTER("row_log_table_apply_op");
 	row_log_t*	log	= dup->index->online_log;
 	dict_index_t*	new_index = dict_table_get_first_index(log->table);
 	ulint		extra_size;
@@ -2425,7 +2447,7 @@ row_log_table_apply_op(
 
 	/* 3 = 1 (op type) + 1 (ext_size) + at least 1 byte payload */
 	if (mrec + 3 >= mrec_end) {
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	const mrec_t* const mrec_start = mrec;
@@ -2434,7 +2456,7 @@ row_log_table_apply_op(
 	default:
 		ut_ad(0);
 		*error = DB_CORRUPTION;
-		return(NULL);
+		DBUG_RETURN(NULL);
 	case ROW_T_INSERT:
 		extra_size = *mrec++;
 
@@ -2448,7 +2470,7 @@ row_log_table_apply_op(
 		mrec += extra_size;
 
 		if (mrec > mrec_end) {
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 
 		rec_offs_set_n_fields(offsets, dup->index->n_fields);
@@ -2458,13 +2480,13 @@ row_log_table_apply_op(
 
 		if (log->table->n_v_cols) {
 			if (next_mrec + 2 > mrec_end) {
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 			next_mrec += mach_read_from_2(next_mrec);
 		}
 
 		if (next_mrec > mrec_end) {
-			return(NULL);
+			DBUG_RETURN(NULL);
 		} else {
 			log->head.total += next_mrec - mrec_start;
 
@@ -2482,7 +2504,7 @@ row_log_table_apply_op(
 	case ROW_T_DELETE:
 		/* 1 (extra_size) + 4 (ext_size) + at least 1 (payload) */
 		if (mrec + 6 >= mrec_end) {
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 
 		extra_size = *mrec++;
@@ -2499,14 +2521,14 @@ row_log_table_apply_op(
 		next_mrec = mrec + rec_offs_data_size(offsets) + ext_size;
 		if (log->table->n_v_cols) {
 			if (next_mrec + 2 > mrec_end) {
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 
 			next_mrec += mach_read_from_2(next_mrec);
 		}
 
 		if (next_mrec > mrec_end) {
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 
 		log->head.total += next_mrec - mrec_start;
@@ -2565,7 +2587,7 @@ row_log_table_apply_op(
 			mrec += extra_size;
 
 			if (mrec > mrec_end) {
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 
 			rec_offs_set_n_fields(offsets, dup->index->n_fields);
@@ -2574,7 +2596,7 @@ row_log_table_apply_op(
 			next_mrec = mrec + rec_offs_data_size(offsets);
 
 			if (next_mrec > mrec_end) {
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 
 			old_pk = dtuple_create_with_vcol(
@@ -2607,7 +2629,7 @@ row_log_table_apply_op(
 			mrec += *mrec + 1;
 
 			if (mrec > mrec_end) {
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 
 			/* Get offsets for PRIMARY KEY,
@@ -2617,7 +2639,7 @@ row_log_table_apply_op(
 
 			next_mrec = mrec + rec_offs_data_size(offsets);
 			if (next_mrec + 2 > mrec_end) {
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 
 			/* Copy the PRIMARY KEY fields and
@@ -2665,7 +2687,7 @@ row_log_table_apply_op(
 			mrec += extra_size;
 
 			if (mrec > mrec_end) {
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 
 			rec_offs_set_n_fields(offsets, dup->index->n_fields);
@@ -2674,7 +2696,7 @@ row_log_table_apply_op(
 			next_mrec = mrec + rec_offs_data_size(offsets);
 
 			if (next_mrec > mrec_end) {
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 		}
 
@@ -2684,23 +2706,23 @@ row_log_table_apply_op(
 			ulint		n_v_size = 0;
 
 			if (next_mrec + 2 > mrec_end) {
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 
 			n_v_size = mach_read_from_2(next_mrec);
 			next_mrec += n_v_size;
 			if (next_mrec > mrec_end) {
-				return(NULL);
+				DBUG_RETURN(NULL);
 			}
 
 			/* if there is more than 2 bytes length info */
 			if (n_v_size > 2) {
 				if (next_mrec + 2 > mrec_end) {
-					return(NULL);
+					DBUG_RETURN(NULL);
 				}
 				o_v_size = mach_read_from_2(next_mrec);
 				if (next_mrec + o_v_size > mrec_end) {
-					return(NULL);
+					DBUG_RETURN(NULL);
 				}
 
 				trx_undo_read_v_cols(
@@ -2735,7 +2757,7 @@ row_log_table_apply_op(
 	ut_ad(log->head.total <= log->tail.total);
 	mem_heap_empty(offsets_heap);
 	mem_heap_empty(heap);
-	return(next_mrec);
+	DBUG_RETURN(next_mrec);
 }
 
 #ifdef HAVE_PSI_STAGE_INTERFACE
@@ -2750,6 +2772,7 @@ inline
 ulint
 row_log_progress_inc_per_block()
 {
+	DBUG_ENTER("row_log_progress_inc_per_block");
 	/* We must increment the progress once per page (as in
 	univ_page_size, usually 16KiB). One block here is srv_sort_buf_size
 	(usually 1MiB). */
@@ -2761,7 +2784,7 @@ row_log_progress_inc_per_block()
 	/* Multiply by an artificial factor of 6 to even the pace with
 	the rest of the ALTER TABLE phases, they process page_size amount
 	of data faster. */
-	return(pages_per_block * 6);
+	DBUG_RETURN(pages_per_block * 6);
 }
 
 /** Estimate how much work is to be done by the log apply phase
@@ -2773,8 +2796,9 @@ ulint
 row_log_estimate_work(
 	const dict_index_t*	index)
 {
+	DBUG_ENTER("row_log_estimate_work");
 	if (index == NULL || index->online_log == NULL) {
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	const row_log_t*	l = index->online_log;
@@ -2782,14 +2806,14 @@ row_log_estimate_work(
 		static_cast<ulint>(l->tail.total - l->head.total);
 	const ulint		blocks_left = bytes_left / srv_sort_buf_size;
 
-	return(blocks_left * row_log_progress_inc_per_block());
+	DBUG_RETURN(blocks_left * row_log_progress_inc_per_block());
 }
 #else /* HAVE_PSI_STAGE_INTERFACE */
 inline
 ulint
 row_log_progress_inc_per_block()
 {
-	return(0);
+	DBUG_RETURN(0);
 }
 #endif /* HAVE_PSI_STAGE_INTERFACE */
 
@@ -2807,6 +2831,7 @@ row_log_table_apply_ops(
 	row_merge_dup_t*	dup,
 	ut_stage_alter_t*	stage)
 {
+	DBUG_ENTER("row_log_table_apply_ops");
 	dberr_t		error;
 	const mrec_t*	mrec		= NULL;
 	const mrec_t*	next_mrec;
@@ -3141,7 +3166,7 @@ func_exit:
 	mem_heap_free(heap);
 	row_log_block_free(index->online_log->head);
 	ut_free(offsets);
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /** Apply the row_log_table log to a table upon completing rebuild.
@@ -3159,6 +3184,7 @@ row_log_table_apply(
 	struct TABLE*		table,
 	ut_stage_alter_t*	stage)
 {
+	DBUG_ENTER("row_log_table_apply");
 	dberr_t		error;
 	dict_index_t*	clust_index;
 
@@ -3198,7 +3224,7 @@ row_log_table_apply(
 	DBUG_EXECUTE_IF("innodb_trx_duplicates",
 			thr_get_trx(thr)->duplicates = 0;);
 
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /******************************************************//**
@@ -3274,6 +3300,7 @@ row_log_free(
 /*=========*/
 	row_log_t*&	log)	/*!< in,own: row log */
 {
+	DBUG_ENTER("row_log_free");
 	MONITOR_ATOMIC_DEC(MONITOR_ONLINE_CREATE_INDEX);
 
 	UT_DELETE(log->blobs);
@@ -3283,6 +3310,7 @@ row_log_free(
 	mutex_free(&log->mutex);
 	ut_free(log);
 	log = NULL;
+	DBUG_VOID_RETURN;
 }
 
 /******************************************************//**
@@ -3294,13 +3322,14 @@ row_log_get_max_trx(
 /*================*/
 	dict_index_t*	index)	/*!< in: index, must be locked */
 {
+	DBUG_ENTER("row_log_get_max_trx");
 	ut_ad(dict_index_get_online_status(index) == ONLINE_INDEX_CREATION);
 
 	ut_ad((rw_lock_own(dict_index_get_lock(index), RW_LOCK_S)
 	       && mutex_own(&index->online_log->mutex))
 	      || rw_lock_own(dict_index_get_lock(index), RW_LOCK_X));
 
-	return(index->online_log->max_trx);
+	DBUG_RETURN(index->online_log->max_trx);
 }
 
 /******************************************************//**
@@ -3325,6 +3354,7 @@ row_log_apply_op_low(
 	btr_cur_t	cursor;
 	ulint*		offsets = NULL;
 
+	DBUG_ENTER("row_log_apply_op_low");
 	ut_ad(!dict_index_is_clust(index));
 
 	ut_ad(rw_lock_own(dict_index_get_lock(index), RW_LOCK_X)
@@ -3536,6 +3566,7 @@ insert_the_rec:
 
 func_exit:
 	mtr_commit(&mtr);
+	DBUG_VOID_RETURN;
 }
 
 /******************************************************//**
@@ -3569,6 +3600,7 @@ row_log_apply_op(
 	dtuple_t*	entry;
 	trx_id_t	trx_id;
 
+	DBUG_ENTER("row_log_apply_op");
 	/* Online index creation is only used for secondary indexes. */
 	ut_ad(!dict_index_is_clust(index));
 
@@ -3577,19 +3609,19 @@ row_log_apply_op(
 
 	if (dict_index_is_corrupted(index)) {
 		*error = DB_INDEX_CORRUPT;
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	*error = DB_SUCCESS;
 
 	if (mrec + ROW_LOG_HEADER_SIZE >= mrec_end) {
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	switch (*mrec) {
 	case ROW_OP_INSERT:
 		if (ROW_LOG_HEADER_SIZE + DATA_TRX_ID_LEN + mrec >= mrec_end) {
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 
 		op = static_cast<enum row_op>(*mrec++);
@@ -3604,7 +3636,7 @@ row_log_apply_op(
 corrupted:
 		ut_ad(0);
 		*error = DB_CORRUPTION;
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	extra_size = *mrec++;
@@ -3621,7 +3653,7 @@ corrupted:
 	mrec += extra_size;
 
 	if (mrec > mrec_end) {
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	rec_init_offsets_temp(mrec, index, offsets);
@@ -3639,7 +3671,7 @@ corrupted:
 	mrec += data_size;
 
 	if (mrec > mrec_end) {
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	entry = row_rec_to_index_entry_low(
@@ -3650,7 +3682,7 @@ corrupted:
 
 	row_log_apply_op_low(index, dup, error, offsets_heap,
 			     has_index_lock, op, trx_id, entry);
-	return(mrec);
+	DBUG_RETURN(mrec);
 }
 
 /** Applies operations to a secondary index that was being created.
@@ -3670,6 +3702,7 @@ row_log_apply_ops(
 	row_merge_dup_t*	dup,
 	ut_stage_alter_t*	stage)
 {
+	DBUG_ENTER("row_log_apply_ops");
 	dberr_t		error;
 	const mrec_t*	mrec	= NULL;
 	const mrec_t*	next_mrec;
@@ -3968,7 +4001,7 @@ func_exit:
 	mem_heap_free(offsets_heap);
 	row_log_block_free(index->online_log->head);
 	ut_free(offsets);
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /** Apply the row log to the index upon completing index creation.

@@ -39,6 +39,7 @@ Created 2/17/1996 Heikki Tuuri
 *************************************************************************/
 
 #include "btr0sea.h"
+#include "my_dbug.h"
 #ifdef UNIV_NONINL
 #include "btr0sea.ic"
 #endif /* UNIV_NOINL */
@@ -153,6 +154,7 @@ static
 void
 btr_search_check_free_space_in_heap(dict_index_t* index)
 {
+	DBUG_ENTER("btr_search_check_free_space_in_heap");
 	hash_table_t*	table;
 	mem_heap_t*	heap;
 
@@ -181,6 +183,7 @@ btr_search_check_free_space_in_heap(dict_index_t* index)
 
 		btr_search_x_unlock(index);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Creates and initializes the adaptive search system at a database start.
@@ -310,6 +313,7 @@ void
 btr_search_disable_ref_count(
 	dict_table_t*	table)
 {
+	DBUG_ENTER("btr_search_disable_ref_count");
 	dict_index_t*	index;
 
 	ut_ad(mutex_own(&dict_sys->mutex));
@@ -322,6 +326,7 @@ btr_search_disable_ref_count(
 
 		index->search_info->ref_count = 0;
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Disable the adaptive hash search system and empty the index.
@@ -485,6 +490,7 @@ btr_search_info_update_hash(
 	ulint		n_unique;
 	int		cmp;
 
+	DBUG_ENTER("btr_search_info_update_hash");
 	ut_ad(!rw_lock_own(btr_get_search_latch(index), RW_LOCK_S));
 	ut_ad(!rw_lock_own(btr_get_search_latch(index), RW_LOCK_X));
 
@@ -492,7 +498,7 @@ btr_search_info_update_hash(
 		/* So many deletes are performed on an insert buffer tree
 		that we do not consider a hash index useful on it: */
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	n_unique = dict_index_get_n_unique_in_tree(index);
@@ -509,7 +515,7 @@ btr_search_info_update_hash(
 increment_potential:
 		info->n_hash_potential++;
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	cmp = ut_pair_cmp(info->n_fields, info->n_bytes,
@@ -583,6 +589,7 @@ set_new_recomm:
 
 		info->left_side = FALSE;
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Update the block search info on hash successes. NOTE that info and
@@ -604,6 +611,7 @@ btr_search_update_block_hash_info(
 	ut_ad(rw_lock_own(&block->lock, RW_LOCK_S)
 	      || rw_lock_own(&block->lock, RW_LOCK_X));
 
+	DBUG_ENTER("btr_search_update_block_hash_info");
 	info->last_hash_succ = FALSE;
 
 	ut_a(buf_block_state_valid(block));
@@ -653,11 +661,11 @@ btr_search_update_block_hash_info(
 
 			/* Build a new hash index on the page */
 
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 	}
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /** Updates a hash node reference when it has been unsuccessfully used in a
@@ -681,6 +689,7 @@ btr_search_update_hash_ref(
 	ulint		fold;
 	const rec_t*	rec;
 
+	DBUG_ENTER("btr_search_update_hash_ref");
 	ut_ad(cursor->flag == BTR_CUR_HASH_FAIL);
 	ut_ad(rw_lock_own(btr_get_search_latch(cursor->index), RW_LOCK_X));
 	ut_ad(rw_lock_own(&(block->lock), RW_LOCK_S)
@@ -693,7 +702,7 @@ btr_search_update_hash_ref(
 
 	if (!index) {
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	ut_ad(block->page.id.space() == index->space);
@@ -712,7 +721,7 @@ btr_search_update_hash_ref(
 
 		if (!page_rec_is_user_rec(rec)) {
 
-			return;
+			DBUG_VOID_RETURN;
 		}
 
 		fold = rec_fold(rec,
@@ -730,6 +739,7 @@ btr_search_update_hash_ref(
 
 		MONITOR_INC(MONITOR_ADAPTIVE_HASH_ROW_ADDED);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Updates the search info.
@@ -825,6 +835,7 @@ btr_search_check_guess(
 	ibool		success		= FALSE;
 	rec_offs_init(offsets_);
 
+	DBUG_ENTER("btr_search_check_guess");
 	n_unique = dict_index_get_n_unique_in_tree(cursor->index);
 
 	rec = btr_cur_get_rec(cursor);
@@ -931,13 +942,14 @@ exit_func:
 	if (UNIV_LIKELY_NULL(heap)) {
 		mem_heap_free(heap);
 	}
-	return(success);
+	DBUG_RETURN(success);
 }
 
 static
 void
 btr_search_failure(btr_search_t* info, btr_cur_t* cursor)
 {
+	DBUG_ENTER("btr_search_failure");
 	cursor->flag = BTR_CUR_HASH_FAIL;
 
 #ifdef UNIV_SEARCH_PERF_STAT
@@ -949,6 +961,7 @@ btr_search_failure(btr_search_t* info, btr_cur_t* cursor)
 #endif /* UNIV_SEARCH_PERF_STAT */
 
 	info->last_hash_succ = FALSE;
+	DBUG_VOID_RETURN;
 }
 
 /** Tries to guess the right search position based on the hash search info
@@ -1467,8 +1480,9 @@ btr_search_build_page_hash_index(
 	ulint		offsets_[REC_OFFS_NORMAL_SIZE];
 	ulint*		offsets		= offsets_;
 
+	DBUG_ENTER("btr_search_build_page_hash_index");
 	if (index->disable_ahi || !btr_search_enabled) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	rec_offs_init(offsets_);
@@ -1500,19 +1514,19 @@ btr_search_build_page_hash_index(
 
 	if (n_fields == 0 && n_bytes == 0) {
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (dict_index_get_n_unique_in_tree(index)
 	    < btr_search_get_n_fields(n_fields, n_bytes)) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	n_recs = page_get_n_recs(page);
 
 	if (n_recs == 0) {
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	/* Calculate and cache fold values and corresponding records into
@@ -2022,8 +2036,9 @@ btr_search_hash_table_validate(ulint hash_table_id)
 	ulint		offsets_[REC_OFFS_NORMAL_SIZE];
 	ulint*		offsets		= offsets_;
 
+	DBUG_ENTER("btr_search_hash_table_validate");
 	if (!btr_search_enabled) {
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	}
 
 	/* How many cells to check before temporarily releasing
@@ -2196,7 +2211,7 @@ btr_search_hash_table_validate(ulint hash_table_id)
 		mem_heap_free(heap);
 	}
 
-	return(ok);
+	DBUG_RETURN(ok);
 }
 
 /** Validate the search system.

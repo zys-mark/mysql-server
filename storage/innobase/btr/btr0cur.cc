@@ -516,6 +516,7 @@ btr_cur_get_and_clear_intention(
 {
 	btr_intention_t	intention;
 
+	DBUG_ENTER("btr_cur_get_and_clear_intention");
 	switch (*latch_mode & (BTR_LATCH_FOR_INSERT | BTR_LATCH_FOR_DELETE)) {
 	case BTR_LATCH_FOR_INSERT:
 		intention = BTR_INTENTION_INSERT;
@@ -529,7 +530,7 @@ btr_cur_get_and_clear_intention(
 	}
 	*latch_mode &= ~(BTR_LATCH_FOR_INSERT | BTR_LATCH_FOR_DELETE);
 
-	return(intention);
+	DBUG_RETURN(intention);
 }
 
 /**
@@ -542,26 +543,27 @@ rw_lock_type_t
 btr_cur_latch_for_root_leaf(
 	ulint	latch_mode)
 {
+	DBUG_ENTER("btr_cur_latch_for_root_leaf");
 	switch (latch_mode) {
 	case BTR_SEARCH_LEAF:
 	case BTR_SEARCH_TREE:
 	case BTR_SEARCH_PREV:
-		return(RW_S_LATCH);
+		DBUG_RETURN(RW_S_LATCH);
 	case BTR_MODIFY_LEAF:
 	case BTR_MODIFY_TREE:
 	case BTR_MODIFY_PREV:
-		return(RW_X_LATCH);
+		DBUG_RETURN(RW_X_LATCH);
 	case BTR_CONT_MODIFY_TREE:
 	case BTR_CONT_SEARCH_TREE:
 		/* A root page should be latched already,
 		and don't need to be latched here.
 		fall through (RW_NO_LATCH) */
 	case BTR_NO_LATCHES:
-		return(RW_NO_LATCH);
+		DBUG_RETURN(RW_NO_LATCH);
 	}
 
 	ut_error;
-	return(RW_NO_LATCH); /* avoid compiler warnings */
+	DBUG_RETURN(RW_NO_LATCH); /* avoid compiler warnings */
 }
 
 /** Detects whether the modifying record might need a modifying tree structure.
@@ -584,6 +586,7 @@ btr_cur_will_modify_tree(
 	const page_size_t&	page_size,
 	mtr_t*		mtr)
 {
+	DBUG_ENTER("btr_cur_will_modify_tree");
 	ut_ad(!page_is_leaf(page));
 	ut_ad(mtr_memo_contains_flagged(mtr, dict_index_get_lock(index),
 					MTR_MEMO_X_LOCK
@@ -627,7 +630,7 @@ btr_cur_will_modify_tree(
 			    || page_rec_is_first(rec, page)) {
 				/* The cursor record can be the left most record
 				in this page. */
-				return(true);
+				DBUG_RETURN(true);
 			}
 
 			if (fil_page_get_prev(page) != FIL_NULL
@@ -660,7 +663,7 @@ btr_cur_will_modify_tree(
 			< margin + BTR_CUR_PAGE_COMPRESS_LIMIT(index)
 		    || (fil_page_get_next(page) == FIL_NULL
 			&& fil_page_get_prev(page) == FIL_NULL)) {
-			return(true);
+			DBUG_RETURN(true);
 		}
 	}
 
@@ -672,7 +675,7 @@ btr_cur_will_modify_tree(
 		we should check it here in advance, since the max allowable
 		records in a page is limited. */
 		LIMIT_OPTIMISTIC_INSERT_DEBUG(page_get_n_recs(page),
-					      return(true));
+					      DBUG_RETURN(true));
 
 		/* needs 2 records' space for the case the single split and
 		insert cannot fit.
@@ -683,7 +686,7 @@ btr_cur_will_modify_tree(
 
 		if (max_size < BTR_CUR_PAGE_REORGANIZE_LIMIT + rec_size
 		    || max_size < rec_size * 2) {
-			return(true);
+			DBUG_RETURN(true);
 		}
 		/* TODO: optimize this condition for compressed page.
 		this is based on the worst compress rate.
@@ -697,11 +700,11 @@ btr_cur_will_modify_tree(
 		       < rec_size * 2 + page_get_data_size(page)
 			 + page_dir_calc_reserved_space(
 				page_get_n_recs(page) + 2) + 1) {
-			return(true);
+			DBUG_RETURN(true);
 		}
 	}
 
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /** Detects whether the modifying record might need a opposite modification
@@ -717,21 +720,22 @@ btr_cur_need_opposite_intention(
 	btr_intention_t	lock_intention,
 	const rec_t*	rec)
 {
+	DBUG_ENTER("btr_cur_need_opposite_intention");
 	switch (lock_intention) {
 	case BTR_INTENTION_DELETE:
-		return((mach_read_from_4(page + FIL_PAGE_PREV) != FIL_NULL
+		DBUG_RETURN((mach_read_from_4(page + FIL_PAGE_PREV) != FIL_NULL
 			&& page_rec_is_first(rec, page))
 		       || (mach_read_from_4(page + FIL_PAGE_NEXT) != FIL_NULL
 			   && page_rec_is_last(rec, page)));
 	case BTR_INTENTION_INSERT:
-		return(mach_read_from_4(page + FIL_PAGE_NEXT) != FIL_NULL
+		DBUG_RETURN(mach_read_from_4(page + FIL_PAGE_NEXT) != FIL_NULL
 		       && page_rec_is_last(rec, page));
 	case BTR_INTENTION_BOTH:
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	ut_error;
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /********************************************************************//**
@@ -2903,6 +2907,7 @@ btr_cur_insert_if_possible(
 	page_cur_t*	page_cursor;
 	rec_t*		rec;
 
+	DBUG_ENTER("btr_cur_insert_if_possible");
 	ut_ad(dtuple_check_typed(tuple));
 
 	ut_ad(mtr_is_block_fix(
@@ -2925,7 +2930,7 @@ btr_cur_insert_if_possible(
 	}
 
 	ut_ad(!rec || rec_offs_validate(rec, cursor->index, *offsets));
-	return(rec);
+	DBUG_RETURN(rec);
 }
 
 /*************************************************************//**
@@ -2954,6 +2959,7 @@ btr_cur_ins_lock_and_undo(
 	/* Check if we have to wait for a lock: enqueue an explicit lock
 	request if yes */
 
+	DBUG_ENTER("btr_cur_ins_lock_and_undo");
 	rec = btr_cur_get_rec(cursor);
 	index = cursor->index;
 
@@ -2990,7 +2996,7 @@ btr_cur_ins_lock_and_undo(
 	if (err != DB_SUCCESS
 	    || !dict_index_is_clust(index) || dict_index_is_ibuf(index)) {
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	err = trx_undo_report_row_operation(flags, TRX_UNDO_INSERT_OP,
@@ -2999,7 +3005,7 @@ btr_cur_ins_lock_and_undo(
 					    &roll_ptr);
 	if (err != DB_SUCCESS) {
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	/* Now we can fill in the roll ptr field in entry
@@ -3012,7 +3018,7 @@ btr_cur_ins_lock_and_undo(
 					      DATA_ROLL_PTR, roll_ptr);
 	}
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /**
@@ -3023,6 +3029,7 @@ void
 btr_cur_prefetch_siblings(
 	buf_block_t*	block)
 {
+	DBUG_ENTER("btr_cur_prefetch_siblings");
 	page_t*	page = buf_block_get_frame(block);
 
 	ut_ad(page_is_leaf(page));
@@ -3044,6 +3051,7 @@ btr_cur_prefetch_siblings(
 	    || right_page_no != FIL_NULL) {
 		os_aio_simulated_wake_handler_threads();
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*************************************************************//**
@@ -3724,6 +3732,7 @@ btr_cur_update_alloc_zip_func(
 				false=update-in-place */
 	mtr_t*		mtr)	/*!< in/out: mini-transaction */
 {
+	DBUG_ENTER("btr_cur_update_alloc_zip_func");
 	const page_t*	page = page_cur_get_page(cursor);
 
 	ut_ad(page_zip == page_cur_get_page_zip(cursor));
@@ -3733,19 +3742,19 @@ btr_cur_update_alloc_zip_func(
 
 	if (page_zip_available(page_zip, dict_index_is_clust(index),
 			       length, create)) {
-		return(true);
+		DBUG_RETURN(true);
 	}
 
 	if (!page_zip->m_nonempty && !page_has_garbage(page)) {
 		/* The page has been freshly compressed, so
 		reorganizing it will not help. */
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	if (create && page_is_leaf(page)
 	    && (length + page_get_data_size(page)
 		>= dict_index_zip_pad_optimal_page_size(index))) {
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	if (!btr_page_reorganize(cursor, index, mtr)) {
@@ -3766,7 +3775,7 @@ btr_cur_update_alloc_zip_func(
 
 	if (page_zip_available(page_zip, dict_index_is_clust(index),
 			       length, create)) {
-		return(true);
+		DBUG_RETURN(true);
 	}
 
 out_of_space:
@@ -3779,7 +3788,7 @@ out_of_space:
 		ibuf_reset_free_bits(page_cur_get_block(cursor));
 	}
 
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /*************************************************************//**
@@ -3807,6 +3816,7 @@ btr_cur_update_in_place(
 				mtr_commit(mtr) before latching any
 				further pages */
 {
+	DBUG_ENTER("btr_cur_update_in_place");
 	dict_index_t*	index;
 	buf_block_t*	block;
 	page_zip_des_t*	page_zip;
@@ -3848,7 +3858,7 @@ btr_cur_update_in_place(
 			    page_zip, btr_cur_get_page_cur(cursor),
 			    index, offsets, rec_offs_size(offsets),
 			    false, mtr)) {
-			return(DB_ZIP_OVERFLOW);
+			DBUG_RETURN(DB_ZIP_OVERFLOW);
 		}
 
 		rec = btr_cur_get_rec(cursor);
@@ -3928,7 +3938,7 @@ func_exit:
 		ibuf_update_free_bits_zip(block, mtr);
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*************************************************************//**
@@ -4218,6 +4228,7 @@ btr_cur_pess_upd_restore_supremum(
 	const rec_t*	rec,	/*!< in: updated record */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("btr_cur_pess_upd_restore_supremum");
 	page_t*		page;
 	buf_block_t*	prev_block;
 
@@ -4226,7 +4237,7 @@ btr_cur_pess_upd_restore_supremum(
 	if (page_rec_get_next(page_get_infimum_rec(page)) != rec) {
 		/* Updated record is not the first user record on its page */
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	const ulint	prev_page_no = btr_page_get_prev(page, mtr);
@@ -4705,7 +4716,7 @@ btr_cur_del_mark_set_clust_rec_log(
 
 	if (!log_ptr) {
 		/* Logging in mtr is switched off during crash recovery */
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	*log_ptr++ = 0;
@@ -4742,12 +4753,13 @@ btr_cur_parse_del_mark_set_clust_rec(
 	ulint		offset;
 	rec_t*		rec;
 
+	DBUG_ENTER("btr_cur_parse_del_mark_set_clust_rec");
 	ut_ad(!page
 	      || !!page_is_comp(page) == dict_table_is_comp(index->table));
 
 	if (end_ptr < ptr + 2) {
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	flags = mach_read_from_1(ptr);
@@ -4759,12 +4771,12 @@ btr_cur_parse_del_mark_set_clust_rec(
 
 	if (ptr == NULL) {
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	if (end_ptr < ptr + 2) {
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	offset = mach_read_from_2(ptr);
@@ -4798,7 +4810,7 @@ btr_cur_parse_del_mark_set_clust_rec(
 		}
 	}
 
-	return(ptr);
+	DBUG_RETURN(ptr);
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -4907,12 +4919,13 @@ btr_cur_del_mark_set_sec_rec_log(
 	byte*	log_ptr;
 	ut_ad(val <= 1);
 
+	DBUG_ENTER("btr_cur_del_mark_set_sec_rec_log");
 	log_ptr = mlog_open(mtr, 11 + 1 + 2);
 
 	if (!log_ptr) {
 		/* Logging in mtr is switched off during crash recovery:
 		in that case mlog_open returns NULL */
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	log_ptr = mlog_write_initial_log_record_fast(
@@ -4943,9 +4956,10 @@ btr_cur_parse_del_mark_set_sec_rec(
 	ulint	offset;
 	rec_t*	rec;
 
+	DBUG_ENTER("btr_cur_parse_del_mark_set_sec_rec");
 	if (end_ptr < ptr + 3) {
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	val = mach_read_from_1(ptr);
@@ -4967,7 +4981,7 @@ btr_cur_parse_del_mark_set_sec_rec(
 		btr_rec_set_deleted_flag(rec, page_zip, val);
 	}
 
-	return(ptr);
+	DBUG_RETURN(ptr);
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -5475,6 +5489,7 @@ btr_cur_add_path_info(
 	const rec_t*	rec;
 	const page_t*	page;
 
+	DBUG_ENTER("btr_cur_add_path_info");
 	ut_a(cursor->path_arr);
 
 	if (root_height >= BTR_PATH_ARRAY_N_SLOTS - 1) {
@@ -5483,7 +5498,7 @@ btr_cur_add_path_info(
 		slot = cursor->path_arr;
 		slot->nth_rec = ULINT_UNDEFINED;
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (height == 0) {
@@ -5532,6 +5547,7 @@ btr_estimate_n_rows_in_range_on_level(
 						value is exact i.e. not an
 						estimation */
 {
+	DBUG_ENTER("btr_estimate_n_rows_in_range_on_level");
 	int64_t		n_rows;
 	ulint		n_pages_read;
 	ulint		level;
@@ -5637,7 +5653,7 @@ btr_estimate_n_rows_in_range_on_level(
 
 	} while (page_id.page_no() != slot2->page_no);
 
-	return(n_rows);
+	DBUG_RETURN(n_rows);
 
 inexact:
 
@@ -5657,7 +5673,7 @@ inexact:
 		n_rows = 10;
 	}
 
-	return(n_rows);
+	DBUG_RETURN(n_rows);
 }
 
 /** If the tree gets changed too much between the two dives for the left
@@ -5709,6 +5725,7 @@ btr_estimate_n_rows_in_range_low(
 	mtr_t		mtr;
 	int64_t		table_n_rows;
 
+	DBUG_ENTER("btr_estimate_n_rows_in_range_low");
 	table_n_rows = dict_table_get_n_rows(index->table);
 
 	/* Below we dive to the two records specified by tuple1 and tuple2 and
@@ -5912,7 +5929,7 @@ btr_estimate_n_rows_in_range_low(
 				n_rows = n_rows * 2;
 			}
 
-			DBUG_EXECUTE_IF("bug14007649", return(n_rows););
+			DBUG_EXECUTE_IF("bug14007649", DBUG_RETURN(n_rows););
 
 			/* Do not estimate the number of rows in the range
 			to over 1 / 2 of the estimated rows in the whole
@@ -5930,7 +5947,7 @@ btr_estimate_n_rows_in_range_low(
 				}
 			}
 
-			return(n_rows);
+			DBUG_RETURN(n_rows);
 		}
 
 		if (!diverged && slot1->nth_rec != slot2->nth_rec) {
@@ -5946,7 +5963,7 @@ btr_estimate_n_rows_in_range_low(
 				few attempts, then just return some arbitrary
 				number. */
 				if (nth_attempt >= rows_in_range_max_retries) {
-					return(rows_in_range_arbitrary_ret_val);
+					DBUG_RETURN(rows_in_range_arbitrary_ret_val);
 				}
 
 				const int64_t	ret =
@@ -5954,7 +5971,7 @@ btr_estimate_n_rows_in_range_low(
 						index, tuple1, mode1,
 						tuple2, mode2, nth_attempt + 1);
 
-				return(ret);
+				DBUG_RETURN(ret);
 			}
 
 			diverged = TRUE;
@@ -6030,10 +6047,11 @@ btr_estimate_n_rows_in_range(
 	const dtuple_t*	tuple2,
 	page_cur_mode_t	mode2)
 {
+	DBUG_ENTER("btr_estimate_n_rows_in_range");
 	const int64_t	ret = btr_estimate_n_rows_in_range_low(
 		index, tuple1, mode1, tuple2, mode2, 1 /* first attempt */);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*******************************************************************//**
@@ -6056,10 +6074,11 @@ btr_record_not_null_field_in_rec(
 {
 	ulint	i;
 
+	DBUG_ENTER("btr_record_not_null_field_in_rec");
 	ut_ad(rec_offs_n_fields(offsets) >= n_unique);
 
 	if (n_not_null == NULL) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	for (i = 0; i < n_unique; i++) {
@@ -6069,6 +6088,7 @@ btr_record_not_null_field_in_rec(
 
 		n_not_null[i]++;
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*******************************************************************//**
@@ -6105,10 +6125,11 @@ btr_estimate_number_of_different_key_vals(
 	ulint*		offsets_rec	= NULL;
 	ulint*		offsets_next_rec = NULL;
 
+	DBUG_ENTER("btr_estimate_number_of_different_key_vals");
 	/* For spatial index, there is no such stats can be
 	fetched. */
 	if (dict_index_is_spatial(index)) {
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	n_cols = dict_index_get_n_unique(index);
@@ -6173,7 +6194,7 @@ btr_estimate_number_of_different_key_vals(
 			mtr_commit(&mtr);
 			mem_heap_free(heap);
 
-			return(false);
+			DBUG_RETURN(false);
 		}
 
 		/* Count the number of different key values for each prefix of
@@ -6316,7 +6337,7 @@ btr_estimate_number_of_different_key_vals(
 
 	mem_heap_free(heap);
 
-	return(true);
+	DBUG_RETURN(true);
 }
 
 /*================== EXTERNAL STORAGE OF BIG FIELDS ===================*/
@@ -6334,12 +6355,13 @@ btr_rec_get_field_ref_offs(
 	ulint	field_ref_offs;
 	ulint	local_len;
 
+	DBUG_ENTER("btr_rec_get_field_ref_offs");
 	ut_a(rec_offs_nth_extern(offsets, n));
 	field_ref_offs = rec_get_nth_field_offs(offsets, n, &local_len);
 	ut_a(local_len != UNIV_SQL_NULL);
 	ut_a(local_len >= BTR_EXTERN_FIELD_REF_SIZE);
 
-	return(field_ref_offs + local_len - BTR_EXTERN_FIELD_REF_SIZE);
+	DBUG_RETURN(field_ref_offs + local_len - BTR_EXTERN_FIELD_REF_SIZE);
 }
 
 /** Gets a pointer to the externally stored part of a field.
@@ -6363,10 +6385,11 @@ btr_rec_get_externally_stored_len(
 	ulint	total_extern_len = 0;
 	ulint	i;
 
+	DBUG_ENTER("btr_rec_get_externally_stored_len");
 	ut_ad(!rec_offs_comp(offsets) || !rec_get_node_ptr_flag(rec));
 
 	if (!rec_offs_any_extern(offsets)) {
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	n_fields = rec_offs_n_fields(offsets);
@@ -6383,7 +6406,7 @@ btr_rec_get_externally_stored_len(
 		}
 	}
 
-	return(total_extern_len / UNIV_PAGE_SIZE);
+	DBUG_RETURN(total_extern_len / UNIV_PAGE_SIZE);
 }
 
 /*******************************************************************//**
@@ -6401,6 +6424,7 @@ btr_cur_set_ownership_of_extern_field(
 	ibool		val,	/*!< in: value to set */
 	mtr_t*		mtr)	/*!< in: mtr, or NULL if not logged */
 {
+	DBUG_ENTER("btr_cur_set_ownership_of_extern_field");
 	byte*	data;
 	ulint	local_len;
 	ulint	byte_val;
@@ -6432,6 +6456,7 @@ btr_cur_set_ownership_of_extern_field(
 	} else {
 		mach_write_to_1(data + local_len + BTR_EXTERN_LEN, byte_val);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*******************************************************************//**
@@ -6452,6 +6477,7 @@ btr_cur_disown_inherited_fields(
 {
 	ulint	i;
 
+	DBUG_ENTER("btr_cur_disown_inherited_fields");
 	ut_ad(rec_offs_validate(rec, index, offsets));
 	ut_ad(!rec_offs_comp(offsets) || !rec_get_node_ptr_flag(rec));
 	ut_ad(rec_offs_any_extern(offsets));
@@ -6464,6 +6490,7 @@ btr_cur_disown_inherited_fields(
 				page_zip, rec, index, offsets, i, FALSE, mtr);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*******************************************************************//**
@@ -6484,12 +6511,13 @@ btr_cur_unmark_extern_fields(
 	ulint	n;
 	ulint	i;
 
+	DBUG_ENTER("btr_cur_unmark_extern_fields");
 	ut_ad(!rec_offs_comp(offsets) || !rec_get_node_ptr_flag(rec));
 	n = rec_offs_n_fields(offsets);
 
 	if (!rec_offs_any_extern(offsets)) {
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	for (i = 0; i < n; i++) {
@@ -6499,6 +6527,7 @@ btr_cur_unmark_extern_fields(
 				page_zip, rec, index, offsets, i, TRUE, mtr);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*******************************************************************//**
@@ -6510,7 +6539,8 @@ btr_blob_get_part_len(
 /*==================*/
 	const byte*	blob_header)	/*!< in: blob header */
 {
-	return(mach_read_from_4(blob_header + BTR_BLOB_HDR_PART_LEN));
+	DBUG_ENTER("btr_blob_get_part_len");
+	DBUG_RETURN(mach_read_from_4(blob_header + BTR_BLOB_HDR_PART_LEN));
 }
 
 /*******************************************************************//**
@@ -6522,7 +6552,8 @@ btr_blob_get_next_page_no(
 /*======================*/
 	const byte*	blob_header)	/*!< in: blob header */
 {
-	return(mach_read_from_4(blob_header + BTR_BLOB_HDR_NEXT_PAGE_NO));
+	DBUG_ENTER("btr_blob_get_next_page_no");
+	DBUG_RETURN(mach_read_from_4(blob_header + BTR_BLOB_HDR_NEXT_PAGE_NO));
 }
 
 /*******************************************************************//**
@@ -6537,6 +6568,7 @@ btr_blob_free(
 				if there is one */
 	mtr_t*		mtr)	/*!< in: mini-transaction to commit */
 {
+	DBUG_ENTER("btr_blob_free");
 	buf_pool_t*	buf_pool = buf_pool_from_block(block);
 	ulint		space = block->page.id.space();
 	ulint		page_no	= block->page.id.page_no();
@@ -6565,6 +6597,7 @@ btr_blob_free(
 	}
 
 	buf_pool_mutex_exit(buf_pool);
+	DBUG_VOID_RETURN;
 }
 
 /** Helper class used while writing blob pages, during insert or update. */
@@ -6714,6 +6747,7 @@ btr_store_big_rec_extern_fields(
 					committed and restarted. */
 	enum blob_op	op)		/*! in: operation code */
 {
+	DBUG_ENTER("btr_store_big_rec_extern_fields");
 	ulint		rec_page_no;
 	byte*		field_ref;
 	ulint		extern_len;
@@ -7158,7 +7192,7 @@ func_exit:
 		ut_a(!(field_ref[BTR_EXTERN_LEN] & BTR_EXTERN_OWNER_FLAG));
 	}
 #endif /* UNIV_DEBUG || UNIV_BLOB_LIGHT_DEBUG */
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /*******************************************************************//**
@@ -7172,6 +7206,7 @@ btr_check_blob_fil_page_type(
 	const page_t*	page,		/*!< in: page */
 	ibool		read)		/*!< in: TRUE=read, FALSE=purge */
 {
+	DBUG_ENTER("btr_check_blob_fil_page_type");
 	ulint	type = fil_page_get_type(page);
 
 	ut_a(space_id == page_get_space_id(page));
@@ -7186,7 +7221,7 @@ btr_check_blob_fil_page_type(
 			FIL_PAGE_TYPE on BLOB pages.  Do not print
 			anything about the type mismatch when reading
 			a BLOB page that is in Antelope format.*/
-			return;
+			DBUG_VOID_RETURN;
 		}
 #endif /* !UNIV_DEBUG */
 
@@ -7195,6 +7230,7 @@ btr_check_blob_fil_page_type(
 			<< " space " << space_id << " page " << page_no
 			<< " flags " << flags;
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*******************************************************************//**
@@ -7227,6 +7263,7 @@ btr_free_externally_stored_field(
 					containing the latch to data an an
 					X-latch to the index tree */
 {
+	DBUG_ENTER("btr_free_externally_stored_field");
 	page_t*		page;
 	const ulint	space_id	= mach_read_from_4(
 		field_ref + BTR_EXTERN_SPACE_ID);
@@ -7254,7 +7291,7 @@ btr_free_externally_stored_field(
 		record with some unwritten off-page columns. There is
 		nothing to free then. */
 		ut_a(rollback);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	ut_ad(!(mach_read_from_4(field_ref + BTR_EXTERN_LEN)
@@ -7310,7 +7347,7 @@ btr_free_externally_stored_field(
 			/* Do not free */
 			mtr_commit(&mtr);
 
-			return;
+			DBUG_VOID_RETURN;
 		}
 
 		if (page_no == start_page && dict_index_is_online_ddl(index)) {
@@ -7383,6 +7420,7 @@ btr_free_externally_stored_field(
 		/* Commit mtr and release the BLOB block to save memory. */
 		btr_blob_free(index, ext_block, TRUE, &mtr);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /***********************************************************//**
@@ -7402,6 +7440,7 @@ btr_rec_free_externally_stored_fields(
 				an X-latch to record page and to the index
 				tree */
 {
+	DBUG_ENTER("btr_rec_free_externally_stored_fields");
 	ulint	n_fields;
 	ulint	i;
 
@@ -7419,6 +7458,7 @@ btr_rec_free_externally_stored_fields(
 				rec, offsets, page_zip, i, rollback, mtr);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /***********************************************************//**
@@ -7442,6 +7482,7 @@ btr_rec_free_updated_extern_fields(
 	ulint	n_fields;
 	ulint	i;
 
+	DBUG_ENTER("btr_rec_free_updated_extern_fields");
 	ut_ad(rec_offs_validate(rec, index, offsets));
 	ut_ad(mtr_is_page_fix(mtr, rec, MTR_MEMO_PAGE_X_FIX, index->table));
 
@@ -7464,6 +7505,7 @@ btr_rec_free_updated_extern_fields(
 				ufield->field_no, rollback, mtr);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*******************************************************************//**
@@ -7483,6 +7525,7 @@ btr_copy_blob_prefix(
 {
 	ulint	copied_len	= 0;
 
+	DBUG_ENTER("btr_copy_blob_prefix");
 	for (;;) {
 		mtr_t		mtr;
 		buf_block_t*	block;
@@ -7514,7 +7557,7 @@ btr_copy_blob_prefix(
 
 		if (page_no == FIL_NULL || copy_len != part_len) {
 			UNIV_MEM_ASSERT_RW(buf, copied_len);
-			return(copied_len);
+			DBUG_RETURN(copied_len);
 		}
 
 		/* On other BLOB pages except the first the BLOB header
@@ -7551,6 +7594,7 @@ btr_copy_zblob_prefix(
 	int		err;
 	z_stream	d_stream;
 
+	DBUG_ENTER("btr_copy_zblob_prefix");
 	d_stream.next_out = buf;
 	d_stream.avail_out = static_cast<uInt>(len);
 	d_stream.next_in = Z_NULL;
@@ -7670,7 +7714,7 @@ func_exit:
 	inflateEnd(&d_stream);
 	mem_heap_free(heap);
 	UNIV_MEM_ASSERT_RW(buf, d_stream.total_out);
-	return(d_stream.total_out);
+	DBUG_RETURN(d_stream.total_out);
 }
 
 /** Copies the prefix of an externally stored field of a record.
@@ -7694,16 +7738,17 @@ btr_copy_externally_stored_field_prefix_low(
 	ulint			page_no,
 	ulint			offset)
 {
+	DBUG_ENTER("btr_copy_externally_stored_field_prefix_low");
 	if (len == 0) {
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	if (page_size.is_compressed()) {
-		return(btr_copy_zblob_prefix(buf, len, page_size,
+		DBUG_RETURN(btr_copy_zblob_prefix(buf, len, page_size,
 					     space_id, page_no, offset));
 	} else {
 		ut_ad(page_size.equals_to(univ_page_size));
-		return(btr_copy_blob_prefix(buf, len, space_id,
+		DBUG_RETURN(btr_copy_blob_prefix(buf, len, space_id,
 					    page_no, offset));
 	}
 }
@@ -7731,13 +7776,14 @@ btr_copy_externally_stored_field_prefix(
 	ulint	page_no;
 	ulint	offset;
 
+	DBUG_ENTER("btr_copy_externally_stored_field_prefix");
 	ut_a(local_len >= BTR_EXTERN_FIELD_REF_SIZE);
 
 	local_len -= BTR_EXTERN_FIELD_REF_SIZE;
 
 	if (UNIV_UNLIKELY(local_len >= len)) {
 		memcpy(buf, data, len);
-		return(len);
+		DBUG_RETURN(len);
 	}
 
 	memcpy(buf, data, local_len);
@@ -7750,7 +7796,7 @@ btr_copy_externally_stored_field_prefix(
 		(partially) deleted.  Signal the half-deleted BLOB
 		to the caller. */
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	space_id = mach_read_from_4(data + BTR_EXTERN_SPACE_ID);
@@ -7759,7 +7805,7 @@ btr_copy_externally_stored_field_prefix(
 
 	offset = mach_read_from_4(data + BTR_EXTERN_OFFSET);
 
-	return(local_len
+	DBUG_RETURN(local_len
 	       + btr_copy_externally_stored_field_prefix_low(buf + local_len,
 							     len - local_len,
 							     page_size,
@@ -7791,6 +7837,7 @@ btr_copy_externally_stored_field(
 	ulint	extern_len;
 	byte*	buf;
 
+	DBUG_ENTER("btr_copy_externally_stored_field");
 	ut_a(local_len >= BTR_EXTERN_FIELD_REF_SIZE);
 
 	local_len -= BTR_EXTERN_FIELD_REF_SIZE;
@@ -7816,7 +7863,7 @@ btr_copy_externally_stored_field(
 							      space_id,
 							      page_no, offset);
 
-	return(buf);
+	DBUG_RETURN(buf);
 }
 
 /** Copies an externally stored field of a record to mem heap.
@@ -7840,6 +7887,7 @@ btr_rec_copy_externally_stored_field(
 	ulint		local_len;
 	const byte*	data;
 
+	DBUG_ENTER("btr_rec_copy_externally_stored_field");
 	ut_a(rec_offs_nth_extern(offsets, no));
 
 	/* An externally stored field can contain some initial
@@ -7862,10 +7910,10 @@ btr_rec_copy_externally_stored_field(
 		This record should only be seen by
 		recv_recovery_rollback_active() or any
 		TRX_ISO_READ_UNCOMMITTED transactions. */
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
-	return(btr_copy_externally_stored_field(len, data,
+	DBUG_RETURN(btr_copy_externally_stored_field(len, data,
 						page_size, local_len, heap));
 }
 #endif /* !UNIV_HOTBACKUP */
