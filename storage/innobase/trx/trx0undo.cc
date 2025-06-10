@@ -33,6 +33,7 @@ Created 3/26/1996 Heikki Tuuri
 
 #include "ha_prototypes.h"
 
+#include "my_dbug.h"
 #include "trx0undo.h"
 
 #ifdef UNIV_NONINL
@@ -423,6 +424,7 @@ trx_undo_page_init(
 	ulint	type,		/*!< in: undo log segment type */
 	mtr_t*	mtr)		/*!< in: mtr */
 {
+	DBUG_ENTER("trx_undo_page_init");
 	trx_upagef_t*	page_hdr;
 
 	page_hdr = undo_page + TRX_UNDO_PAGE_HDR;
@@ -437,6 +439,7 @@ trx_undo_page_init(
 	fil_page_set_type(undo_page, FIL_PAGE_UNDO_LOG);
 
 	trx_undo_page_init_log(undo_page, type, mtr);
+	DBUG_VOID_RETURN;
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -1767,6 +1770,7 @@ trx_undo_assign_undo(
 	ulint		type)		/*!< in: TRX_UNDO_INSERT or
 					TRX_UNDO_UPDATE */
 {
+	DBUG_ENTER("trx_undo_assign_undo");
 	trx_rseg_t*	rseg;
 	trx_undo_t*	undo;
 	mtr_t		mtr;
@@ -1837,7 +1841,7 @@ func_exit:
 	mutex_exit(&(rseg->mutex));
 	mtr_commit(&mtr);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /******************************************************************//**
