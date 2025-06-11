@@ -825,7 +825,7 @@ trx_rollback_or_clean_recovered(
 
 	if (trx_sys_get_n_rw_trx() == 0) {
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (all) {

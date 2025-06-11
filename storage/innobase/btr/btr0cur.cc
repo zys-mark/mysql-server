@@ -4937,6 +4937,7 @@ btr_cur_del_mark_set_sec_rec_log(
 	log_ptr += 2;
 
 	mlog_close(mtr, log_ptr);
+	DBUG_VOID_RETURN;
 }
 #endif /* !UNIV_HOTBACKUP */
 

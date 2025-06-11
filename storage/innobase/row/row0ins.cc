@@ -3676,7 +3676,7 @@ row_ins_alloc_row_id_step(
 
 		/* No row id is stored if the clustered index is unique */
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	/* Fill in row id value to row */

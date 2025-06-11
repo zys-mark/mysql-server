@@ -43,6 +43,7 @@ Created 11/5/1995 Heikki Tuuri
 #include "buf0dblwr.h"
 #include "ibuf0ibuf.h"
 #include "log0recv.h"
+#include "my_dbug.h"
 #include "trx0sys.h"
 #include "os0file.h"
 #include "srv0start.h"
@@ -67,6 +68,7 @@ buf_read_page_handle_error(
 /*=======================*/
 	buf_page_t*	bpage)	/*!< in: pointer to the block */
 {
+	DBUG_ENTER("buf_read_page_handle_error");
 	buf_pool_t*	buf_pool = buf_pool_from_bpage(bpage);
 	const bool	uncompressed = (buf_page_get_state(bpage)
 					== BUF_BLOCK_FILE_PAGE);
@@ -95,6 +97,7 @@ buf_read_page_handle_error(
 	buf_pool->n_pend_reads--;
 
 	buf_pool_mutex_exit(buf_pool);
+	DBUG_VOID_RETURN;
 }
 
 /** Low-level function which reads a page asynchronously from a file to the
@@ -127,6 +130,7 @@ buf_read_page_low(
 	const page_size_t&	page_size,
 	bool			unzip)
 {
+	DBUG_ENTER("buf_read_page_low");
 	buf_page_t*	bpage;
 
 	*err = DB_SUCCESS;
@@ -136,7 +140,7 @@ buf_read_page_low(
 
 		ib::error() << "Trying to read doublewrite buffer page "
 			<< page_id;
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	if (ibuf_bitmap_page(page_id, page_size) || trx_sys_hdr_page(page_id)) {
@@ -158,7 +162,7 @@ buf_read_page_low(
 
 	if (bpage == NULL) {
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	DBUG_PRINT("ib_buf", ("read page %u:%u size=%u unzip=%u,%s",
@@ -218,11 +222,11 @@ buf_read_page_low(
 				recv_sys->n_addrs--;
 				mutex_exit(&recv_sys->mutex);
 			}
-			return(0);
+			DBUG_RETURN(0);
 		} else if (IORequest::ignore_missing(type)
 			   || *err == DB_TABLESPACE_DELETED) {
 			buf_read_page_handle_error(bpage);
-			return(0);
+			DBUG_RETURN(0);
 		}
 
 		ut_error;
@@ -232,11 +236,11 @@ buf_read_page_low(
 		/* The i/o is already completed when we arrive from
 		fil_read */
 		if (!buf_page_io_complete(bpage)) {
-			return(0);
+			DBUG_RETURN(0);
 		}
 	}
 
-	return(1);
+	DBUG_RETURN(1);
 }
 
 /** Applies a random read-ahead in buf_pool if there are at least a threshold
@@ -261,6 +265,7 @@ buf_read_ahead_random(
 	const page_size_t&	page_size,
 	ibool			inside_ibuf)
 {
+	DBUG_ENTER("buf_read_ahead_random");
 	buf_pool_t*	buf_pool = buf_pool_get(page_id);
 	ulint		recent_blocks	= 0;
 	ulint		ibuf_mode;
@@ -273,12 +278,12 @@ buf_read_ahead_random(
 
 	if (!srv_random_read_ahead) {
 		/* Disabled by user */
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	if (srv_startup_is_before_trx_rollback_phase) {
 		/* No read-ahead to avoid thread deadlocks */
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	if (ibuf_bitmap_page(page_id, page_size) || trx_sys_hdr_page(page_id)) {
@@ -287,7 +292,7 @@ buf_read_ahead_random(
 		no read-ahead, as that could break the ibuf page access
 		order */
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	low  = (page_id.page_no() / buf_read_ahead_random_area)
@@ -321,7 +326,7 @@ buf_read_ahead_random(
 		}
 		fil_space_release(space);
 	} else {
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	buf_pool_mutex_enter(buf_pool);
@@ -330,7 +335,7 @@ buf_read_ahead_random(
 	    > buf_pool->curr_size / BUF_READ_AHEAD_PEND_LIMIT) {
 		buf_pool_mutex_exit(buf_pool);
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	/* Count how many blocks in the area have been recently accessed,
@@ -370,7 +375,7 @@ buf_read_ahead_random(
 
 	buf_pool_mutex_exit(buf_pool);
 	/* Do nothing */
-	return(0);
+	DBUG_RETURN(0);
 
 read_ahead:
 	/* Read all the suitable blocks within the area */
@@ -426,7 +431,7 @@ read_ahead:
 
 	buf_pool->stat.n_ra_pages_read_rnd += count;
 	srv_stats.buf_pool_reads.add(count);
-	return(count);
+	DBUG_RETURN(count);
 }
 
 /** High-level function which reads a page asynchronously from a file to the
@@ -444,6 +449,7 @@ buf_read_page(
 	ulint		count;
 	dberr_t		err;
 
+	DBUG_ENTER("buf_read_page");
 	/* We do synchronous IO because our AIO completion code
 	is sub-optimal. See buf_page_io_complete(), we have to
 	acquire the buffer pool mutex before acquiring the block
@@ -464,7 +470,7 @@ buf_read_page(
 	/* Increment number of I/O operations used for LRU policy. */
 	buf_LRU_stat_inc_io();
 
-	return(count > 0);
+	DBUG_RETURN(count > 0);
 }
 
 /** High-level function which reads a page asynchronously from a file to the
@@ -484,6 +490,7 @@ buf_read_page_background(
 	ulint		count;
 	dberr_t		err;
 
+	DBUG_ENTER("buf_read_page_background");
 	count = buf_read_page_low(
 		&err, sync,
 		IORequest::DO_NOT_WAKE | IORequest::IGNORE_MISSING,
@@ -499,7 +506,7 @@ buf_read_page_background(
 	these IOs are deliberate and are not part of normal workload we can
 	ignore these in our heuristics. */
 
-	return(count > 0);
+	DBUG_RETURN(count > 0);
 }
 
 /** Applies linear read-ahead if in the buf_pool the page is a border page of
@@ -534,6 +541,7 @@ buf_read_ahead_linear(
 	const page_size_t&	page_size,
 	ibool			inside_ibuf)
 {
+	DBUG_ENTER("buf_read_ahead_linear");
 	buf_pool_t*	buf_pool = buf_pool_get(page_id);
 	buf_page_t*	bpage;
 	buf_frame_t*	frame;
@@ -552,12 +560,12 @@ buf_read_ahead_linear(
 
 	/* check if readahead is disabled */
 	if (!srv_read_ahead_threshold) {
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	if (srv_startup_is_before_trx_rollback_phase) {
 		/* No read-ahead to avoid thread deadlocks */
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	low  = (page_id.page_no() / buf_read_ahead_linear_area)
@@ -568,7 +576,7 @@ buf_read_ahead_linear(
 	if ((page_id.page_no() != low) && (page_id.page_no() != high - 1)) {
 		/* This is not a border page of the area: return */
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	if (ibuf_bitmap_page(page_id, page_size) || trx_sys_hdr_page(page_id)) {
@@ -577,7 +585,7 @@ buf_read_ahead_linear(
 		no read-ahead, as that could break the ibuf page access
 		order */
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	/* Remember the tablespace version before we ask te tablespace size
@@ -591,10 +599,10 @@ buf_read_ahead_linear(
 
 		if (high > space_size) {
 			/* The area is not whole */
-			return(0);
+			DBUG_RETURN(0);
 		}
 	} else {
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	buf_pool_mutex_enter(buf_pool);
@@ -603,7 +611,7 @@ buf_read_ahead_linear(
 	    > buf_pool->curr_size / BUF_READ_AHEAD_PEND_LIMIT) {
 		buf_pool_mutex_exit(buf_pool);
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	/* Check that almost all pages in the area have been accessed; if
@@ -652,7 +660,7 @@ buf_read_ahead_linear(
 		if (fail_count > threshold) {
 			/* Too many failures: return */
 			buf_pool_mutex_exit(buf_pool);
-			return(0);
+			DBUG_RETURN(0);
 		}
 
 		if (bpage && buf_page_is_accessed(bpage)) {
@@ -668,7 +676,7 @@ buf_read_ahead_linear(
 	if (bpage == NULL) {
 		buf_pool_mutex_exit(buf_pool);
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	switch (buf_page_get_state(bpage)) {
@@ -708,7 +716,7 @@ buf_read_ahead_linear(
 	} else {
 		/* Successor or predecessor not in the right order */
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	low  = (new_offset / buf_read_ahead_linear_area)
@@ -719,13 +727,13 @@ buf_read_ahead_linear(
 	if ((new_offset != low) && (new_offset != high - 1)) {
 		/* This is not a border page of the area: return */
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	if (high > space_size) {
 		/* The area is not whole, return */
 
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	ulint	count = 0;
@@ -784,7 +792,7 @@ buf_read_ahead_linear(
 	buf_LRU_stat_inc_io();
 
 	buf_pool->stat.n_ra_pages_read += count;
-	return(count);
+	DBUG_RETURN(count);
 }
 
 /********************************************************************//**
@@ -807,6 +815,7 @@ buf_read_ibuf_merge_pages(
 	ulint		n_stored)	/*!< in: number of elements
 					in the arrays */
 {
+	DBUG_ENTER("buf_read_ibuf_merge_pages");
 #ifdef UNIV_IBUF_DEBUG
 	ut_a(n_stored < UNIV_PAGE_SIZE);
 #endif
@@ -856,6 +865,7 @@ buf_read_ibuf_merge_pages(
 			   ("ibuf merge read-ahead %u pages, space %u",
 			    unsigned(n_stored), unsigned(space_ids[0])));
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Issues read requests for pages which recovery wants to read in.
@@ -872,6 +882,7 @@ buf_read_recv_pages(
 	const ulint*	page_nos,
 	ulint		n_stored)
 {
+	DBUG_ENTER("buf_read_recv_pages");
 	ulint			count;
 	dberr_t			err;
 	ulint			i;
@@ -879,7 +890,7 @@ buf_read_recv_pages(
 
 	if (space == NULL) {
 		/* The tablespace is missing: do nothing */
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	fil_space_open_if_needed(space);
@@ -929,5 +940,6 @@ buf_read_recv_pages(
 
 	DBUG_PRINT("ib_buf", ("recovery read-ahead (%u pages)",
 			      unsigned(n_stored)));
+    DBUG_VOID_RETURN;
 }
 
