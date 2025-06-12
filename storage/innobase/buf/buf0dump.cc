@@ -31,6 +31,7 @@ Implements a buffer pool dump/load.
 Created April 08, 2011 Vasil Dimov
 *******************************************************/
 
+#include "my_dbug.h"
 #include "my_global.h"
 #include "my_sys.h"
 #include "my_thread.h"
@@ -87,8 +88,10 @@ void
 buf_dump_start()
 /*============*/
 {
+	DBUG_ENTER("buf_dump_start");
 	buf_dump_should_start = TRUE;
 	os_event_set(srv_buf_dump_event);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -100,8 +103,10 @@ void
 buf_load_start()
 /*============*/
 {
+	DBUG_ENTER("buf_load_start");
 	buf_load_should_start = TRUE;
 	os_event_set(srv_buf_dump_event);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -122,6 +127,7 @@ buf_dump_status(
 	...)				/*!< in: extra parameters according
 					to fmt */
 {
+	DBUG_ENTER("buf_dump_status");
 	va_list	ap;
 
 	va_start(ap, fmt);
@@ -145,6 +151,7 @@ buf_dump_status(
 	}
 
 	va_end(ap);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -164,6 +171,7 @@ buf_load_status(
 	const char*	fmt,	/*!< in: format */
 	...)			/*!< in: extra parameters according to fmt */
 {
+	DBUG_ENTER("buf_load_status");
 	va_list	ap;
 
 	va_start(ap, fmt);
@@ -187,6 +195,7 @@ buf_load_status(
 	}
 
 	va_end(ap);
+	DBUG_VOID_RETURN;
 }
 
 /** Returns the directory path where the buffer pool dump file will be created.
@@ -195,6 +204,7 @@ static
 const char*
 get_buf_dump_dir()
 {
+	DBUG_ENTER("get_buf_dump_dir");
 	const char*	dump_dir;
 
 	/* The dump file should be created in the default data directory if
@@ -205,7 +215,7 @@ get_buf_dump_dir()
 		dump_dir = srv_data_home;
 	}
 
-	return(dump_dir);
+	DBUG_RETURN(dump_dir);
 }
 
 /** Generate the path to the buffer pool dump/load file.
@@ -217,6 +227,7 @@ buf_dump_generate_path(
 	char*	path,
 	size_t	path_size)
 {
+	DBUG_ENTER("buf_dump_generate_path");
 	char	buf[FN_REFLEN];
 
 	ut_snprintf(buf, sizeof(buf), "%s%c%s", get_buf_dump_dir(),
@@ -256,6 +267,7 @@ buf_dump_generate_path(
 				    srv_buf_dump_filename);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -271,6 +283,7 @@ buf_dump(
 	ibool	obey_shutdown)	/*!< in: quit if we are in a shutting down
 				state */
 {
+	DBUG_ENTER("buf_dump");
 #define SHOULD_QUIT()	(SHUTTING_DOWN() && obey_shutdown)
 
 	char	full_filename[OS_FILE_MAX_PATH];
@@ -293,7 +306,7 @@ buf_dump(
 		buf_dump_status(STATUS_ERR,
 				"Cannot open '%s' for writing: %s",
 				tmp_filename, strerror(errno));
-		return;
+		DBUG_VOID_RETURN;
 	}
 	/* else */
 
@@ -340,7 +353,7 @@ buf_dump(
 					(ulint) (n_pages * sizeof(*dump)),
 					strerror(errno));
 			/* leave tmp_filename to exist */
-			return;
+			DBUG_VOID_RETURN;
 		}
 
 		for (bpage = UT_LIST_GET_FIRST(buf_pool->LRU), j = 0;
@@ -368,7 +381,7 @@ buf_dump(
 						"Cannot write to '%s': %s",
 						tmp_filename, strerror(errno));
 				/* leave tmp_filename to exist */
-				return;
+				DBUG_VOID_RETURN;
 			}
 
 			if (j % 128 == 0) {
@@ -390,7 +403,7 @@ buf_dump(
 		buf_dump_status(STATUS_ERR,
 				"Cannot close '%s': %s",
 				tmp_filename, strerror(errno));
-		return;
+		DBUG_VOID_RETURN;
 	}
 	/* else */
 
@@ -400,7 +413,7 @@ buf_dump(
 				"Cannot delete '%s': %s",
 				full_filename, strerror(errno));
 		/* leave tmp_filename to exist */
-		return;
+		DBUG_VOID_RETURN;
 	}
 	/* else */
 
@@ -411,7 +424,7 @@ buf_dump(
 				tmp_filename, full_filename,
 				strerror(errno));
 		/* leave tmp_filename to exist */
-		return;
+		DBUG_VOID_RETURN;
 	}
 	/* else */
 
@@ -421,6 +434,7 @@ buf_dump(
 
 	buf_dump_status(STATUS_INFO,
 			"Buffer pool(s) dump completed at %s", now);
+	DBUG_VOID_RETURN;
 }
 
 /** Artificially delay the buffer pool loading if necessary. The idea of this
@@ -441,14 +455,15 @@ buf_load_throttle_if_needed(
 	ulint*			last_activity_count,
 	ulint 			n_io)
 {
+	DBUG_ENTER("buf_load_throttle_if_needed");
 	if (n_io % srv_io_capacity < srv_io_capacity - 1) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (*last_check_time == 0 || *last_activity_count == 0) {
 		*last_check_time = ut_time_monotonic_ms();
 		*last_activity_count = srv_get_activity_count();
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	/* srv_io_capacity IO operations have been performed by buffer pool
@@ -456,7 +471,7 @@ buf_load_throttle_if_needed(
 
 	/* If no other activity, then keep going without any delay. */
 	if (srv_get_activity_count() == *last_activity_count) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	/* There has been other activity, throttle. */
@@ -489,6 +504,7 @@ buf_load_throttle_if_needed(
 
 	*last_check_time = ut_time_monotonic_ms();
 	*last_activity_count = srv_get_activity_count();
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -502,6 +518,7 @@ void
 buf_load()
 /*======*/
 {
+	DBUG_ENTER("buf_load");
 	char		full_filename[OS_FILE_MAX_PATH];
 	char		now[32];
 	FILE*		f;
@@ -526,7 +543,7 @@ buf_load()
 		buf_load_status(STATUS_ERR,
 				"Cannot open '%s' for reading: %s",
 				full_filename, strerror(errno));
-		return;
+		DBUG_VOID_RETURN;
 	}
 	/* else */
 
@@ -551,7 +568,7 @@ buf_load()
 		buf_load_status(STATUS_ERR, "Error %s '%s',"
 				" unable to load buffer pool (stage 1)",
 				what, full_filename);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	/* If dump is larger than the buffer pool(s), then we ignore the
@@ -572,7 +589,7 @@ buf_load()
 		buf_load_status(STATUS_INFO,
 				"Buffer pool(s) load completed at %s"
 				" (%s was empty)", now, full_filename);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (dump == NULL) {
@@ -581,7 +598,7 @@ buf_load()
 				"Cannot allocate " ULINTPF " bytes: %s",
 				(ulint) (dump_n * sizeof(*dump)),
 				strerror(errno));
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	rewind(f);
@@ -602,7 +619,7 @@ buf_load()
 					"Error parsing '%s', unable"
 					" to load buffer pool (stage 2)",
 					full_filename);
-			return;
+			DBUG_VOID_RETURN;
 		}
 
 		if (space_id > ULINT32_MASK || page_no > ULINT32_MASK) {
@@ -616,7 +633,7 @@ buf_load()
 					full_filename,
 					space_id, page_no,
 					i);
-			return;
+			DBUG_VOID_RETURN;
 		}
 
 		dump[i] = BUF_DUMP_CREATE(space_id, page_no);
@@ -635,7 +652,7 @@ buf_load()
 		buf_load_status(STATUS_INFO,
 				"Buffer pool(s) load completed at %s"
 				" (%s was empty)", now, full_filename);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (!SHUTTING_DOWN()) {
@@ -722,7 +739,7 @@ buf_load()
 #ifdef HAVE_PSI_STAGE_INTERFACE
 			mysql_end_stage();
 #endif /* HAVE_PSI_STAGE_INTERFACE */
-			return;
+			DBUG_VOID_RETURN;
 		}
 
 		buf_load_throttle_if_needed(
@@ -746,6 +763,7 @@ buf_load()
 #ifdef HAVE_PSI_STAGE_INTERFACE
 	mysql_end_stage();
 #endif /* HAVE_PSI_STAGE_INTERFACE */
+    DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -756,7 +774,9 @@ void
 buf_load_abort()
 /*============*/
 {
+	DBUG_ENTER("buf_load_abort");
 	buf_load_abort_flag = TRUE;
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**

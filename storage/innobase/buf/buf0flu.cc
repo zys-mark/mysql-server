@@ -218,11 +218,13 @@ incr_flush_list_size_in_bytes(
 	buf_block_t*	block,		/*!< in: control block */
 	buf_pool_t*	buf_pool)	/*!< in: buffer pool instance */
 {
+	DBUG_ENTER("incr_flush_list_size_in_bytes");
 	ut_ad(buf_flush_list_mutex_own(buf_pool));
 
 	buf_pool->stat.flush_list_bytes += block->page.size.physical();
 
 	ut_ad(buf_pool->stat.flush_list_bytes <= buf_pool->curr_pool_size);
+	DBUG_VOID_RETURN;
 }
 
 #if defined UNIV_DEBUG || defined UNIV_BUF_DEBUG
@@ -244,6 +246,7 @@ buf_flush_validate_skip(
 /*====================*/
 	buf_pool_t*	buf_pool)	/*!< in: Buffer pool instance */
 {
+	DBUG_ENTER("buf_flush_validate_skip");
 /** Try buf_flush_validate_low() every this many times */
 # define BUF_FLUSH_VALIDATE_SKIP	23
 
@@ -256,11 +259,11 @@ buf_flush_validate_skip(
 	reduce the call frequency of the costly buf_flush_validate_low()
 	check in debug builds. */
 	if (--buf_flush_validate_count > 0) {
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	}
 
 	buf_flush_validate_count = BUF_FLUSH_VALIDATE_SKIP;
-	return(buf_flush_validate_low(buf_pool));
+	DBUG_RETURN(buf_flush_validate_low(buf_pool));
 }
 #endif /* UNIV_DEBUG || UNIV_BUF_DEBUG */
 
@@ -275,6 +278,7 @@ buf_flush_insert_in_flush_rbt(
 /*==========================*/
 	buf_page_t*	bpage)	/*!< in: bpage to be inserted. */
 {
+	DBUG_ENTER("buf_flush_insert_in_flush_rbt");
 	const ib_rbt_node_t*	c_node;
 	const ib_rbt_node_t*	p_node;
 	buf_page_t*		prev = NULL;
@@ -296,7 +300,7 @@ buf_flush_insert_in_flush_rbt(
 		ut_a(prev != NULL);
 	}
 
-	return(prev);
+	DBUG_RETURN(prev);
 }
 
 /*********************************************************//**
@@ -307,6 +311,7 @@ buf_flush_delete_from_flush_rbt(
 /*============================*/
 	buf_page_t*	bpage)	/*!< in: bpage to be removed. */
 {
+	DBUG_ENTER("buf_flush_delete_from_flush_rbt");
 #ifdef UNIV_DEBUG
 	ibool		ret = FALSE;
 #endif /* UNIV_DEBUG */
@@ -320,6 +325,7 @@ buf_flush_delete_from_flush_rbt(
 	rbt_delete(buf_pool->flush_rbt, &bpage);
 
 	ut_ad(ret);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -339,6 +345,7 @@ buf_flush_block_cmp(
 	const void*	p1,		/*!< in: block1 */
 	const void*	p2)		/*!< in: block2 */
 {
+	DBUG_ENTER("buf_flush_block_cmp");
 	int			ret;
 	const buf_page_t*	b1 = *(const buf_page_t**) p1;
 	const buf_page_t*	b2 = *(const buf_page_t**) p2;
@@ -356,16 +363,16 @@ buf_flush_block_cmp(
 	ut_ad(b2->in_flush_list);
 
 	if (b2->oldest_modification > b1->oldest_modification) {
-		return(1);
+		DBUG_RETURN(1);
 	} else if (b2->oldest_modification < b1->oldest_modification) {
-		return(-1);
+		DBUG_RETURN(-1);
 	}
 
 	/* If oldest_modification is same then decide on the space. */
 	ret = (int)(b2->id.space() - b1->id.space());
 
 	/* Or else decide ordering on the page number. */
-	return(ret ? ret : (int) (b2->id.page_no() - b1->id.page_no()));
+	DBUG_RETURN(ret ? ret : (int) (b2->id.page_no() - b1->id.page_no()));
 }
 
 /********************************************************************//**
@@ -376,6 +383,7 @@ void
 buf_flush_init_flush_rbt(void)
 /*==========================*/
 {
+	DBUG_ENTER("buf_flush_init_flush_rbt");
 	ulint	i;
 
 	for (i = 0; i < srv_buf_pool_instances; i++) {
@@ -393,6 +401,7 @@ buf_flush_init_flush_rbt(void)
 
 		buf_flush_list_mutex_exit(buf_pool);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -401,6 +410,7 @@ void
 buf_flush_free_flush_rbt(void)
 /*==========================*/
 {
+	DBUG_ENTER("buf_flush_free_flush_rbt");
 	ulint	i;
 
 	for (i = 0; i < srv_buf_pool_instances; i++) {
@@ -419,6 +429,7 @@ buf_flush_free_flush_rbt(void)
 
 		buf_flush_list_mutex_exit(buf_pool);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -430,6 +441,7 @@ buf_flush_insert_into_flush_list(
 	buf_block_t*	block,		/*!< in/out: block which is modified */
 	lsn_t		lsn)		/*!< in: oldest modification */
 {
+	DBUG_ENTER("buf_flush_insert_into_flush_list");
 	ut_ad(!buf_pool_mutex_own(buf_pool));
 	ut_ad(log_flush_order_mutex_own());
 	ut_ad(buf_page_mutex_own(block));
@@ -445,7 +457,7 @@ buf_flush_insert_into_flush_list(
 	if (buf_pool->flush_rbt != NULL) {
 		buf_flush_list_mutex_exit(buf_pool);
 		buf_flush_insert_sorted_into_flush_list(buf_pool, block, lsn);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	ut_ad(buf_block_get_state(block) == BUF_BLOCK_FILE_PAGE);
@@ -475,6 +487,7 @@ buf_flush_insert_into_flush_list(
 #endif /* UNIV_DEBUG || UNIV_BUF_DEBUG */
 
 	buf_flush_list_mutex_exit(buf_pool);
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -488,6 +501,7 @@ buf_flush_insert_sorted_into_flush_list(
 	buf_block_t*	block,		/*!< in/out: block which is modified */
 	lsn_t		lsn)		/*!< in: oldest modification */
 {
+	DBUG_ENTER("buf_flush_insert_sorted_into_flush_list");
 	buf_page_t*	prev_b;
 	buf_page_t*	b;
 
@@ -573,6 +587,7 @@ buf_flush_insert_sorted_into_flush_list(
 #endif /* UNIV_DEBUG || UNIV_BUF_DEBUG */
 
 	buf_flush_list_mutex_exit(buf_pool);
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -585,6 +600,7 @@ buf_flush_ready_for_replace(
 	buf_page_t*	bpage)	/*!< in: buffer control block, must be
 				buf_page_in_file(bpage) and in the LRU list */
 {
+	DBUG_ENTER("buf_flush_ready_for_replace");
 #ifdef UNIV_DEBUG
 	buf_pool_t*	buf_pool = buf_pool_from_bpage(bpage);
 	ut_ad(buf_pool_mutex_own(buf_pool));
@@ -594,7 +610,7 @@ buf_flush_ready_for_replace(
 
 	if (buf_page_in_file(bpage)) {
 
-		return(bpage->oldest_modification == 0
+		DBUG_RETURN(bpage->oldest_modification == 0
 		       && bpage->buf_fix_count == 0
 		       && buf_page_get_io_fix(bpage) == BUF_IO_NONE);
 	}
@@ -602,7 +618,7 @@ buf_flush_ready_for_replace(
 	ib::fatal() << "Buffer block " << bpage << " state " <<  bpage->state
 		<< " in the LRU list!";
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /********************************************************************//**
@@ -615,6 +631,7 @@ buf_flush_ready_for_flush(
 				buf_page_in_file(bpage) */
 	buf_flush_t	flush_type)/*!< in: type of flush */
 {
+	DBUG_ENTER("buf_flush_ready_for_flush");
 #ifdef UNIV_DEBUG
 	buf_pool_t*	buf_pool = buf_pool_from_bpage(bpage);
 	ut_ad(buf_pool_mutex_own(buf_pool));
@@ -626,7 +643,7 @@ buf_flush_ready_for_flush(
 
 	if (bpage->oldest_modification == 0
 	    || buf_page_get_io_fix(bpage) != BUF_IO_NONE) {
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	ut_ad(bpage->in_flush_list);
@@ -635,14 +652,14 @@ buf_flush_ready_for_flush(
 	case BUF_FLUSH_LIST:
 	case BUF_FLUSH_LRU:
 	case BUF_FLUSH_SINGLE_PAGE:
-		return(true);
+		DBUG_RETURN(true);
 
 	case BUF_FLUSH_N_TYPES:
 		break;
 	}
 
 	ut_error;
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /********************************************************************//**
@@ -652,6 +669,7 @@ buf_flush_remove(
 /*=============*/
 	buf_page_t*	bpage)	/*!< in: pointer to the block in question */
 {
+	DBUG_ENTER("buf_flush_remove");
 	buf_pool_t*	buf_pool = buf_pool_from_bpage(bpage);
 
 	ut_ad(buf_pool_mutex_own(buf_pool));
@@ -674,7 +692,7 @@ buf_flush_remove(
 	case BUF_BLOCK_MEMORY:
 	case BUF_BLOCK_REMOVE_HASH:
 		ut_error;
-		return;
+		DBUG_VOID_RETURN;
 	case BUF_BLOCK_ZIP_DIRTY:
 		buf_page_set_state(bpage, BUF_BLOCK_ZIP_PAGE);
 		UT_LIST_REMOVE(buf_pool->flush_list, bpage);
@@ -713,6 +731,7 @@ buf_flush_remove(
 	}
 
 	buf_flush_list_mutex_exit(buf_pool);
+	DBUG_VOID_RETURN;
 }
 
 /*******************************************************************//**
@@ -732,6 +751,7 @@ buf_flush_relocate_on_flush_list(
 	buf_page_t*	bpage,	/*!< in/out: control block being moved */
 	buf_page_t*	dpage)	/*!< in/out: destination block */
 {
+	DBUG_ENTER("buf_flush_relocate_on_flush_list");
 	buf_page_t*	prev;
 	buf_page_t*	prev_b = NULL;
 	buf_pool_t*	buf_pool = buf_pool_from_bpage(bpage);
@@ -789,6 +809,7 @@ buf_flush_relocate_on_flush_list(
 #endif /* UNIV_DEBUG || UNIV_BUF_DEBUG */
 
 	buf_flush_list_mutex_exit(buf_pool);
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -798,6 +819,7 @@ buf_flush_write_complete(
 /*=====================*/
 	buf_page_t*	bpage)	/*!< in: pointer to the block in question */
 {
+	DBUG_ENTER("buf_flush_write_complete");
 	buf_flush_t	flush_type;
 	buf_pool_t*	buf_pool = buf_pool_from_bpage(bpage);
 
@@ -817,6 +839,7 @@ buf_flush_write_complete(
 	}
 
 	buf_dblwr_update(bpage, flush_type);
+	DBUG_VOID_RETURN;
 }
 #endif /* !UNIV_HOTBACKUP */
 
@@ -831,6 +854,7 @@ buf_flush_update_zip_checksum(
 	ulint		size,
 	lsn_t		lsn)
 {
+	DBUG_ENTER("buf_flush_update_zip_checksum");
 	ut_a(size > 0);
 
 	const uint32_t	checksum = page_zip_calc_checksum(
@@ -839,6 +863,7 @@ buf_flush_update_zip_checksum(
 
 	mach_write_to_8(page + FIL_PAGE_LSN, lsn);
 	mach_write_to_4(page + FIL_PAGE_SPACE_OR_CHKSUM, checksum);
+	DBUG_VOID_RETURN;
 }
 
 /** Initialize a page for writing to the tablespace.
@@ -855,6 +880,7 @@ buf_flush_init_for_writing(
 	lsn_t			newest_lsn,
 	bool			skip_checksum)
 {
+	DBUG_ENTER("buf_flush_init_for_writing");
 	ib_uint32_t	checksum = BUF_NO_CHECKSUM_MAGIC;
 
 	ut_ad(block == NULL || block->frame == page);
@@ -890,7 +916,7 @@ buf_flush_init_for_writing(
 			buf_flush_update_zip_checksum(
 				page_zip->data, size, newest_lsn);
 
-			return;
+			DBUG_VOID_RETURN;
 		}
 
 		ib::error() << "The compressed page to be written"
@@ -1004,6 +1030,7 @@ buf_flush_init_for_writing(
 
 	mach_write_to_4(page + UNIV_PAGE_SIZE - FIL_PAGE_END_LSN_OLD_CHKSUM,
 			checksum);
+	DBUG_VOID_RETURN;
 }
 
 #ifndef UNIV_HOTBACKUP
@@ -1020,6 +1047,7 @@ buf_flush_write_block_low(
 	buf_flush_t	flush_type,	/*!< in: type of flush */
 	bool		sync)		/*!< in: true if sync IO request */
 {
+	DBUG_ENTER("buf_flush_write_block_low");
 	page_t*	frame = NULL;
 
 #ifdef UNIV_DEBUG
@@ -1129,6 +1157,7 @@ buf_flush_write_block_low(
 	/* Increment the counter of I/O operations used
 	for selecting LRU policy. */
 	buf_LRU_stat_inc_io();
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -1147,6 +1176,7 @@ buf_flush_page(
 	buf_flush_t	flush_type,	/*!< in: type of flush */
 	bool		sync)		/*!< in: true if sync IO request */
 {
+	DBUG_ENTER("buf_flush_page");
 	BPageMutex*	block_mutex;
 
 	ut_ad(flush_type < BUF_FLUSH_N_TYPES);
@@ -1245,7 +1275,7 @@ buf_flush_page(
 		buf_flush_write_block_low(bpage, flush_type, sync);
 	}
 
-	return(flush);
+	DBUG_RETURN(flush);
 }
 
 # if defined UNIV_DEBUG || defined UNIV_IBUF_DEBUG
@@ -1261,17 +1291,18 @@ buf_flush_page_try(
 	buf_pool_t*	buf_pool,	/*!< in/out: buffer pool instance */
 	buf_block_t*	block)		/*!< in/out: buffer control block */
 {
+	DBUG_ENTER("buf_flush_page_try");
 	ut_ad(buf_pool_mutex_own(buf_pool));
 	ut_ad(buf_block_get_state(block) == BUF_BLOCK_FILE_PAGE);
 	ut_ad(buf_page_mutex_own(block));
 
 	if (!buf_flush_ready_for_flush(&block->page, BUF_FLUSH_SINGLE_PAGE)) {
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	/* The following call will release the buffer pool and
 	block mutex. */
-	return(buf_flush_page(
+	DBUG_RETURN(buf_flush_page(
 			buf_pool, &block->page,
 			BUF_FLUSH_SINGLE_PAGE, true));
 }
@@ -1287,6 +1318,7 @@ buf_flush_check_neighbor(
 	const page_id_t&	page_id,
 	buf_flush_t		flush_type)
 {
+	DBUG_ENTER("buf_flush_check_neighbor");
 	buf_page_t*	bpage;
 	buf_pool_t*	buf_pool = buf_pool_get(page_id);
 	bool		ret;
@@ -1302,7 +1334,7 @@ buf_flush_check_neighbor(
 	if (!bpage) {
 
 		buf_pool_mutex_exit(buf_pool);
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	ut_a(buf_page_in_file(bpage));
@@ -1322,7 +1354,7 @@ buf_flush_check_neighbor(
 	}
 	buf_pool_mutex_exit(buf_pool);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /** Flushes to disk all flushable pages within the flush area.
@@ -1339,6 +1371,7 @@ buf_flush_try_neighbors(
 	ulint			n_flushed,
 	ulint			n_to_flush)
 {
+	DBUG_ENTER("buf_flush_try_neighbors");
 	ulint		i;
 	ulint		low;
 	ulint		high;
@@ -1490,7 +1523,7 @@ buf_flush_try_neighbors(
 			(count - 1));
 	}
 
-	return(count);
+	DBUG_RETURN(count);
 }
 
 /** Check if the block is modified and ready for flushing.
@@ -1512,6 +1545,7 @@ buf_flush_page_and_try_neighbors(
 	ulint			n_to_flush,
 	ulint*			count)
 {
+	DBUG_ENTER("buf_flush_page_and_try_neighbors");
 #ifdef UNIV_DEBUG
 	buf_pool_t*	buf_pool = buf_pool_from_bpage(bpage);
 
@@ -1550,7 +1584,7 @@ buf_flush_page_and_try_neighbors(
 
 	ut_ad(buf_pool_mutex_own(buf_pool));
 
-	return(flushed);
+	DBUG_RETURN(flushed);
 }
 
 /*******************************************************************//**
@@ -1570,6 +1604,7 @@ buf_free_from_unzip_LRU_list_batch(
 	ulint		max)		/*!< in: desired number of
 					blocks in the free_list */
 {
+	DBUG_ENTER("buf_free_from_unzip_LRU_list_batch");
 	ulint		scanned = 0;
 	ulint		count = 0;
 	ulint		free_len = UT_LIST_GET_LEN(buf_pool->free);
@@ -1610,7 +1645,7 @@ buf_free_from_unzip_LRU_list_batch(
 			scanned);
 	}
 
-	return(count);
+	DBUG_RETURN(count);
 }
 
 /*******************************************************************//**
@@ -1628,6 +1663,7 @@ buf_flush_LRU_list_batch(
 	ulint		max)		/*!< in: desired number of
 					blocks in the free_list */
 {
+	DBUG_ENTER("buf_flush_LRU_list_batch");
 	buf_page_t*	bpage;
 	ulint		scanned = 0;
 	ulint		evict_count = 0;
@@ -1711,7 +1747,7 @@ buf_flush_LRU_list_batch(
 			scanned);
 	}
 
-	return(count);
+	DBUG_RETURN(count);
 }
 
 /*******************************************************************//**
@@ -1728,6 +1764,7 @@ buf_do_LRU_batch(
 	ulint		max)		/*!< in: desired number of
 					blocks in the free_list */
 {
+	DBUG_ENTER("buf_do_LRU_batch");
 	ulint	count = 0;
 
 	if (buf_LRU_evict_from_unzip_LRU(buf_pool)) {
@@ -1738,7 +1775,7 @@ buf_do_LRU_batch(
 		count += buf_flush_LRU_list_batch(buf_pool, max - count);
 	}
 
-	return(count);
+	DBUG_RETURN(count);
 }
 
 /** This utility flushes dirty blocks from the end of the flush_list.
@@ -1758,6 +1795,7 @@ buf_do_flush_list_batch(
 	ulint			min_n,
 	lsn_t			lsn_limit)
 {
+	DBUG_ENTER("buf_do_flush_list_batch");
 	ulint		count = 0;
 	ulint		scanned = 0;
 
@@ -1822,7 +1860,7 @@ buf_do_flush_list_batch(
 
 	ut_ad(buf_pool_mutex_own(buf_pool));
 
-	return(count);
+	DBUG_RETURN(count);
 }
 
 /** This utility flushes dirty blocks from the end of the LRU list or
@@ -1848,6 +1886,7 @@ buf_flush_batch(
 	ulint			min_n,
 	lsn_t			lsn_limit)
 {
+	DBUG_ENTER("buf_flush_batch");
 	ut_ad(flush_type == BUF_FLUSH_LRU || flush_type == BUF_FLUSH_LIST);
 
 #ifdef UNIV_DEBUG
@@ -1881,7 +1920,7 @@ buf_flush_batch(
 	DBUG_PRINT("ib_buf", ("flush %u completed, %u pages",
 			      unsigned(flush_type), unsigned(count)));
 
-	return(count);
+	DBUG_RETURN(count);
 }
 
 /******************************************************************//**
@@ -1896,12 +1935,14 @@ buf_flush_stats(
 	ulint		page_count_flush,
 	ulint		page_count_LRU)
 {
+	DBUG_ENTER("buf_flush_stats");
 	DBUG_PRINT("ib_buf", ("flush completed, from flush_list %u pages, "
 			      "from LRU_list %u pages",
 			      unsigned(page_count_flush),
 			      unsigned(page_count_LRU)));
 
 	srv_stats.buf_pool_flushed.add(page_count_flush + page_count_LRU);
+	DBUG_VOID_RETURN;
 }
 
 /******************************************************************//**
@@ -1914,6 +1955,7 @@ buf_flush_start(
 	buf_flush_t	flush_type)	/*!< in: BUF_FLUSH_LRU
 					or BUF_FLUSH_LIST */
 {
+	DBUG_ENTER("buf_flush_start");
 	ut_ad(flush_type == BUF_FLUSH_LRU || flush_type == BUF_FLUSH_LIST);
 
 	buf_pool_mutex_enter(buf_pool);
@@ -1925,7 +1967,7 @@ buf_flush_start(
 
 		buf_pool_mutex_exit(buf_pool);
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	buf_pool->init_flush[flush_type] = TRUE;
@@ -1934,7 +1976,7 @@ buf_flush_start(
 
 	buf_pool_mutex_exit(buf_pool);
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /******************************************************************//**
@@ -1947,6 +1989,7 @@ buf_flush_end(
 	buf_flush_t	flush_type)	/*!< in: BUF_FLUSH_LRU
 					or BUF_FLUSH_LIST */
 {
+	DBUG_ENTER("buf_flush_end");
 	buf_pool_mutex_enter(buf_pool);
 
 	buf_pool->init_flush[flush_type] = FALSE;
@@ -1967,6 +2010,7 @@ buf_flush_end(
 	} else {
 		os_aio_simulated_wake_handler_threads();
 	}
+	DBUG_VOID_RETURN;
 }
 
 /******************************************************************//**
@@ -1978,6 +2022,7 @@ buf_flush_wait_batch_end(
 	buf_flush_t	type)		/*!< in: BUF_FLUSH_LRU
 					or BUF_FLUSH_LIST */
 {
+	DBUG_ENTER("buf_flush_wait_batch_end");
 	ut_ad(type == BUF_FLUSH_LRU || type == BUF_FLUSH_LIST);
 
 	if (buf_pool == NULL) {
@@ -1997,6 +2042,7 @@ buf_flush_wait_batch_end(
 		os_event_wait(buf_pool->no_flush[type]);
 		thd_wait_end(NULL);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Do flushing batch of a given type.
@@ -2020,6 +2066,7 @@ buf_flush_do_batch(
 	lsn_t			lsn_limit,
 	ulint*			n_processed)
 {
+	DBUG_ENTER("buf_flush_do_batch");
 	ut_ad(type == BUF_FLUSH_LRU || type == BUF_FLUSH_LIST);
 
 	if (n_processed != NULL) {
@@ -2027,7 +2074,7 @@ buf_flush_do_batch(
 	}
 
 	if (!buf_flush_start(buf_pool, type)) {
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	ulint	page_count = buf_flush_batch(buf_pool, type, min_n, lsn_limit);
@@ -2038,7 +2085,7 @@ buf_flush_do_batch(
 		*n_processed = page_count;
 	}
 
-	return(true);
+	DBUG_RETURN(true);
 }
 
 /**
@@ -2049,6 +2096,7 @@ void
 buf_flush_wait_flushed(
 	lsn_t		new_oldest)
 {
+	DBUG_ENTER("buf_flush_wait_flushed");
 	for (ulint i = 0; i < srv_buf_pool_instances; ++i) {
 		buf_pool_t*	buf_pool;
 		lsn_t		oldest;
@@ -2091,6 +2139,7 @@ buf_flush_wait_flushed(
 			MONITOR_INC(MONITOR_FLUSH_SYNC_WAITS);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** This utility flushes dirty blocks from the end of the flush list of all
@@ -2112,6 +2161,7 @@ buf_flush_lists(
 	lsn_t			lsn_limit,
 	ulint*			n_processed)
 {
+	DBUG_ENTER("buf_flush_lists");
 	ulint		i;
 	ulint		n_flushed = 0;
 	bool		success = true;
@@ -2167,7 +2217,7 @@ buf_flush_lists(
 		*n_processed = n_flushed;
 	}
 
-	return(success);
+	DBUG_RETURN(success);
 }
 
 /******************************************************************//**
@@ -2183,6 +2233,7 @@ buf_flush_single_page_from_LRU(
 /*===========================*/
 	buf_pool_t*	buf_pool)	/*!< in/out: buffer pool instance */
 {
+	DBUG_ENTER("buf_flush_single_page_from_LRU");
 	ulint		scanned;
 	buf_page_t*	bpage;
 	ibool		freed;
@@ -2259,7 +2310,7 @@ buf_flush_single_page_from_LRU(
 
 	ut_ad(!buf_pool_mutex_own(buf_pool));
 
-	return(freed);
+	DBUG_RETURN(freed);
 }
 
 /**
@@ -2275,6 +2326,7 @@ ulint
 buf_flush_LRU_list(
 	buf_pool_t*	buf_pool)
 {
+	DBUG_ENTER("buf_flush_LRU_list");
 	ulint	scan_depth, withdraw_depth;
 	ulint	n_flushed = 0;
 
@@ -2307,7 +2359,7 @@ buf_flush_LRU_list(
 	buf_flush_do_batch(buf_pool, BUF_FLUSH_LRU, scan_depth,
 			   0, &n_flushed);
 
-	return(n_flushed);
+	DBUG_RETURN(n_flushed);
 }
 
 /*********************************************************************//**
@@ -2321,6 +2373,7 @@ ulint
 buf_flush_LRU_lists(void)
 /*=====================*/
 {
+	DBUG_ENTER("buf_flush_LRU_lists");
 	ulint	n_flushed = 0;
 
 	for (ulint i = 0; i < srv_buf_pool_instances; i++) {
@@ -2332,7 +2385,7 @@ buf_flush_LRU_lists(void)
 		buf_flush_stats(0, n_flushed);
 	}
 
-	return(n_flushed);
+	DBUG_RETURN(n_flushed);
 }
 
 /*********************************************************************//**
@@ -2341,6 +2394,7 @@ void
 buf_flush_wait_LRU_batch_end(void)
 /*==============================*/
 {
+	DBUG_ENTER("buf_flush_wait_LRU_batch_end");
 	for (ulint i = 0; i < srv_buf_pool_instances; i++) {
 		buf_pool_t*	buf_pool;
 
@@ -2357,6 +2411,7 @@ buf_flush_wait_LRU_batch_end(void)
 			buf_pool_mutex_exit(buf_pool);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -2368,11 +2423,12 @@ ulint
 af_get_pct_for_dirty()
 /*==================*/
 {
+	DBUG_ENTER("af_get_pct_for_dirty");
 	double	dirty_pct = buf_get_modified_ratio_pct();
 
 	if (dirty_pct == 0.0) {
 		/* No pages modified */
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	ut_a(srv_max_dirty_pages_pct_lwm
@@ -2385,15 +2441,15 @@ af_get_pct_for_dirty()
 			/* We have crossed the high water mark of dirty
 			pages In this case we start flushing at 100% of
 			innodb_io_capacity. */
-			return(100);
+			DBUG_RETURN(100);
 		}
 	} else if (dirty_pct >= srv_max_dirty_pages_pct_lwm) {
 		/* We should start flushing pages gradually. */
-		return(static_cast<ulint>((dirty_pct * 100)
+		DBUG_RETURN(static_cast<ulint>((dirty_pct * 100)
 		       / (srv_max_buf_pool_modified_pct + 1)));
 	}
 
-	return(0);
+	DBUG_RETURN(0);
 }
 
 /*********************************************************************//**
@@ -2405,6 +2461,7 @@ af_get_pct_for_lsn(
 /*===============*/
 	lsn_t	age)	/*!< in: current age of LSN. */
 {
+	DBUG_ENTER("af_get_pct_for_lsn");
 	lsn_t	max_async_age;
 	lsn_t	lsn_age_factor;
 	lsn_t	af_lwm = (srv_adaptive_flushing_lwm
@@ -2412,7 +2469,7 @@ af_get_pct_for_lsn(
 
 	if (age < af_lwm) {
 		/* No adaptive flushing. */
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	max_async_age = log_get_max_modified_age_async();
@@ -2420,7 +2477,7 @@ af_get_pct_for_lsn(
 	if (age < max_async_age && !srv_adaptive_flushing) {
 		/* We have still not reached the max_async point and
 		the user has disabled adaptive flushing. */
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	/* If we are here then we know that either:
@@ -2430,7 +2487,7 @@ af_get_pct_for_lsn(
 	lsn_age_factor = (age * 100) / max_async_age;
 
 	ut_ad(srv_max_io_capacity >= srv_io_capacity);
-	return(static_cast<ulint>(
+	DBUG_RETURN(static_cast<ulint>(
 		((srv_max_io_capacity / srv_io_capacity)
 		* (lsn_age_factor * sqrt((double)lsn_age_factor)))
 		/ 7.5));
@@ -2451,6 +2508,7 @@ page_cleaner_flush_pages_recommendation(
 	lsn_t*	lsn_limit,
 	ulint	last_pages_in)
 {
+	DBUG_ENTER("page_cleaner_flush_pages_recommendation");
 	static	lsn_t		prev_lsn = 0;
 	static	ulint		sum_pages = 0;
 	static	ulint		avg_page_rate = 0;
@@ -2471,11 +2529,11 @@ page_cleaner_flush_pages_recommendation(
 		/* First time around. */
 		prev_lsn = cur_lsn;
 		prev_time = ut_time_monotonic();
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	if (prev_lsn == cur_lsn) {
-		return(0);
+		DBUG_RETURN(0);
 	}
 
 	sum_pages += last_pages_in;
@@ -2686,7 +2744,7 @@ page_cleaner_flush_pages_recommendation(
 
 	*lsn_limit = LSN_MAX;
 
-	return(n_pages);
+	DBUG_RETURN(n_pages);
 }
 
 /*********************************************************************//**
@@ -2704,6 +2762,7 @@ pc_sleep_if_needed(
 	ib_time_monotonic_ms_t		next_loop_time,
 	int64_t		sig_count)
 {
+	DBUG_ENTER("pc_sleep_if_needed");
 	ib_time_monotonic_ms_t	cur_time = ut_time_monotonic_ms();
 
 	if (next_loop_time > cur_time) {
@@ -2715,11 +2774,11 @@ pc_sleep_if_needed(
 			         (next_loop_time - cur_time) * int64_t(1000));
 		ut_a(sleep_us > 0);
 
-		return(os_event_wait_time_low(buf_flush_event,
+		DBUG_RETURN(os_event_wait_time_low(buf_flush_event,
 					      sleep_us, sig_count));
 	}
 
-	return(OS_SYNC_TIME_EXCEEDED);
+	DBUG_RETURN(OS_SYNC_TIME_EXCEEDED);
 }
 
 /******************************************************************//**
@@ -2728,6 +2787,7 @@ void
 buf_flush_page_cleaner_init(void)
 /*=============================*/
 {
+	DBUG_ENTER("buf_flush_page_cleaner_init");
 	ut_ad(page_cleaner == NULL);
 
 	page_cleaner = static_cast<page_cleaner_t*>(
@@ -2747,6 +2807,7 @@ buf_flush_page_cleaner_init(void)
 	ut_d(page_cleaner->n_disabled_debug = 0);
 
 	page_cleaner->is_running = true;
+	DBUG_VOID_RETURN;
 }
 
 /**
@@ -2755,6 +2816,7 @@ static
 void
 buf_flush_page_cleaner_close(void)
 {
+	DBUG_ENTER("buf_flush_page_cleaner_close");
 	/* waiting for all worker threads exit */
 	while (page_cleaner->n_workers > 0) {
 		os_thread_sleep(10000);
@@ -2770,6 +2832,7 @@ buf_flush_page_cleaner_close(void)
 	ut_free(page_cleaner);
 
 	page_cleaner = NULL;
+	DBUG_VOID_RETURN;
 }
 
 /**
@@ -2786,6 +2849,7 @@ pc_request(
 	ulint		min_n,
 	lsn_t		lsn_limit)
 {
+	DBUG_ENTER("pc_request");
 	if (min_n != ULINT_MAX) {
 		/* Ensure that flushing is spread evenly amongst the
 		buffer pool instances. When min_n is ULINT_MAX
@@ -2828,6 +2892,7 @@ pc_request(
 	os_event_set(page_cleaner->is_requested);
 
 	mutex_exit(&page_cleaner->mutex);
+	DBUG_VOID_RETURN;
 }
 
 /**
@@ -2837,6 +2902,7 @@ static
 ulint
 pc_flush_slot(void)
 {
+	DBUG_ENTER("pc_flush_slot");
 	ib_time_monotonic_ms_t	lru_tm = 0;
 	ib_time_monotonic_ms_t	list_tm = 0;
 	int	lru_pass = 0;
@@ -2930,7 +2996,7 @@ finish_mutex:
 
 	mutex_exit(&page_cleaner->mutex);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /**
@@ -2945,6 +3011,7 @@ pc_wait_finished(
 	ulint*	n_flushed_lru,
 	ulint*	n_flushed_list)
 {
+	DBUG_ENTER("pc_wait_finished");
 	bool	all_succeeded = true;
 
 	*n_flushed_lru = 0;
@@ -2978,7 +3045,7 @@ pc_wait_finished(
 
 	mutex_exit(&page_cleaner->mutex);
 
-	return(all_succeeded);
+	DBUG_RETURN(all_succeeded);
 }
 
 #ifdef UNIV_LINUX
@@ -2991,9 +3058,10 @@ bool
 buf_flush_page_cleaner_set_priority(
 	int	priority)
 {
+	DBUG_ENTER("buf_flush_page_cleaner_set_priority");
 	setpriority(PRIO_PROCESS, (pid_t)syscall(SYS_gettid),
 		    priority);
-	return(getpriority(PRIO_PROCESS, (pid_t)syscall(SYS_gettid))
+	DBUG_RETURN(getpriority(PRIO_PROCESS, (pid_t)syscall(SYS_gettid))
 	       == priority);
 }
 #endif /* UNIV_LINUX */
@@ -3004,11 +3072,12 @@ static
 void
 buf_flush_page_cleaner_disabled_loop(void)
 {
+	DBUG_ENTER("buf_flush_page_cleaner_disabled_loop");
 	ut_ad(page_cleaner != NULL);
 
 	if (!innodb_page_cleaner_disabled_debug) {
 		/* We return to avoid entering and exiting mutex. */
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	mutex_enter(&page_cleaner->mutex);
@@ -3038,6 +3107,7 @@ buf_flush_page_cleaner_disabled_loop(void)
 	mutex_enter(&page_cleaner->mutex);
 	page_cleaner->n_disabled_debug--;
 	mutex_exit(&page_cleaner->mutex);
+	DBUG_VOID_RETURN;
 }
 
 /** Disables page cleaner threads (coordinator and workers).
@@ -3053,13 +3123,14 @@ buf_flush_page_cleaner_disabled_debug_update(
 	void*				var_ptr,
 	const void*			save)
 {
+	DBUG_ENTER("buf_flush_page_cleaner_disabled_debug_update");
 	if (page_cleaner == NULL) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (!*static_cast<const my_bool*>(save)) {
 		if (!innodb_page_cleaner_disabled_debug) {
-			return;
+			DBUG_VOID_RETURN;
 		}
 
 		innodb_page_cleaner_disabled_debug = false;
@@ -3075,11 +3146,11 @@ buf_flush_page_cleaner_disabled_debug_update(
 				break;
 			}
 		}
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (innodb_page_cleaner_disabled_debug) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	innodb_page_cleaner_disabled_debug = true;
@@ -3111,6 +3182,7 @@ buf_flush_page_cleaner_disabled_debug_update(
 
 		os_thread_sleep(100000);
 	}
+	DBUG_VOID_RETURN;
 }
 #endif /* UNIV_DEBUG */
 
@@ -3499,7 +3571,7 @@ thread_exit:
 	my_thread_end();
 
 	/* We count the number of threads in os_thread_exit(). A created
-	thread should always use that to exit and not use return() to exit. */
+	thread should always use that to exit and not use DBUG_RETURN() to exit. */
 	os_thread_exit();
 
 	OS_THREAD_DUMMY_RETURN;
@@ -3564,6 +3636,7 @@ void
 buf_flush_sync_all_buf_pools(void)
 /*==============================*/
 {
+	DBUG_ENTER("buf_flush_sync_all_buf_pools");
 	bool success;
 	do {
 		success = buf_flush_lists(ULINT_MAX, LSN_MAX, NULL);
@@ -3571,6 +3644,7 @@ buf_flush_sync_all_buf_pools(void)
 	} while (!success);
 
 	ut_a(success);
+	DBUG_VOID_RETURN;
 }
 
 /** Request IO burst and wake page_cleaner up.
@@ -3579,6 +3653,7 @@ void
 buf_flush_request_force(
 	lsn_t	lsn_limit)
 {
+	DBUG_ENTER("buf_flush_request_force");
 	/* adjust based on lsn_avg_rate not to get old */
 	lsn_t	lsn_target = lsn_limit + lsn_avg_rate * 3;
 
@@ -3589,6 +3664,7 @@ buf_flush_request_force(
 	mutex_exit(&page_cleaner->mutex);
 
 	os_event_set(buf_flush_event);
+	DBUG_VOID_RETURN;
 }
 #if defined UNIV_DEBUG || defined UNIV_BUF_DEBUG
 
@@ -3609,6 +3685,7 @@ buf_flush_validate_low(
 /*===================*/
 	buf_pool_t*	buf_pool)		/*!< in: Buffer pool instance */
 {
+	DBUG_ENTER("buf_flush_validate_low");
 	buf_page_t*		bpage;
 	const ib_rbt_node_t*	rnode = NULL;
 	Check			check;
@@ -3663,7 +3740,7 @@ buf_flush_validate_low(
 	flush_rbt (if active) as well. */
 	ut_a(rnode == NULL);
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /******************************************************************//**
@@ -3674,6 +3751,7 @@ buf_flush_validate(
 /*===============*/
 	buf_pool_t*	buf_pool)	/*!< buffer pool instance */
 {
+	DBUG_ENTER("buf_flush_validate");
 	ibool	ret;
 
 	buf_flush_list_mutex_enter(buf_pool);
@@ -3682,7 +3760,7 @@ buf_flush_validate(
 
 	buf_flush_list_mutex_exit(buf_pool);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 #endif /* UNIV_DEBUG || UNIV_BUF_DEBUG */
 #endif /* !UNIV_HOTBACKUP */
@@ -3699,6 +3777,7 @@ buf_pool_get_dirty_pages_count(
 	FlushObserver*	observer)	/*!< in: flush observer to check */
 
 {
+	DBUG_ENTER("buf_pool_get_dirty_pages_count");
 	ulint		count = 0;
 
 	buf_pool_mutex_enter(buf_pool);
@@ -3725,7 +3804,7 @@ buf_pool_get_dirty_pages_count(
 	buf_flush_list_mutex_exit(buf_pool);
 	buf_pool_mutex_exit(buf_pool);
 
-	return(count);
+	DBUG_RETURN(count);
 }
 
 /******************************************************************//**
@@ -3737,6 +3816,7 @@ buf_flush_get_dirty_pages_count(
 	ulint		id,		/*!< in: space id to check */
 	FlushObserver*	observer)	/*!< in: flush observer to check */
 {
+	DBUG_ENTER("buf_flush_get_dirty_pages_count");
 	ulint		count = 0;
 
 	for (ulint i = 0; i < srv_buf_pool_instances; ++i) {
@@ -3747,7 +3827,7 @@ buf_flush_get_dirty_pages_count(
 		count += buf_pool_get_dirty_pages_count(buf_pool, id, observer);
 	}
 
-	return(count);
+	DBUG_RETURN(count);
 }
 
 /** FlushObserver constructor
@@ -3797,13 +3877,14 @@ FlushObserver::~FlushObserver()
 bool
 FlushObserver::check_interrupted()
 {
+	DBUG_ENTER("FlushObserver::check_interrupted");
 	if (trx_is_interrupted(m_trx)) {
 		interrupted();
 
-		return(true);
+		DBUG_RETURN(true);
 	}
 
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /** Notify observer of a flush
@@ -3814,6 +3895,7 @@ FlushObserver::notify_flush(
 	buf_pool_t*	buf_pool,
 	buf_page_t*	bpage)
 {
+	DBUG_ENTER("FlushObserver::notify_flush");
 	ut_ad(buf_pool_mutex_own(buf_pool));
 
 	m_flushed->at(buf_pool->instance_no)++;
@@ -3826,6 +3908,7 @@ FlushObserver::notify_flush(
 	ib::info() << "Flush <" << bpage->id.space()
 		   << ", " << bpage->id.page_no() << ">";
 #endif /* FLUSH_LIST_OBSERVER_DEBUG */
+    DBUG_VOID_RETURN;
 }
 
 /** Notify observer of a remove
@@ -3836,6 +3919,7 @@ FlushObserver::notify_remove(
 	buf_pool_t*	buf_pool,
 	buf_page_t*	bpage)
 {
+	DBUG_ENTER("FlushObserver::notify_remove");
 	ut_ad(buf_pool_mutex_own(buf_pool));
 
 	m_removed->at(buf_pool->instance_no)++;
@@ -3844,12 +3928,14 @@ FlushObserver::notify_remove(
 	ib::info() << "Remove <" << bpage->id.space()
 		   << ", " << bpage->id.page_no() << ">";
 #endif /* FLUSH_LIST_OBSERVER_DEBUG */
+    DBUG_VOID_RETURN;
 }
 
 /** Flush dirty pages and wait. */
 void
 FlushObserver::flush()
 {
+	DBUG_ENTER("FlushObserver::flush");
 	buf_remove_t	buf_remove;
 
 	if (m_interrupted) {
@@ -3876,4 +3962,5 @@ FlushObserver::flush()
 			os_thread_sleep(2000);
 		}
 	}
+	DBUG_VOID_RETURN;
 }

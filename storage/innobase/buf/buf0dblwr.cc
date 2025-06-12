@@ -33,6 +33,7 @@ Created 2011/12/19
 
 #include "ha_prototypes.h"
 #include "buf0dblwr.h"
+#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "buf0buf.ic"
@@ -62,24 +63,25 @@ buf_dblwr_page_inside(
 /*==================*/
 	ulint	page_no)	/*!< in: page number */
 {
+	DBUG_ENTER("buf_dblwr_page_inside");
 	if (buf_dblwr == NULL) {
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	if (page_no >= buf_dblwr->block1
 	    && page_no < buf_dblwr->block1
 	    + TRX_SYS_DOUBLEWRITE_BLOCK_SIZE) {
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	}
 
 	if (page_no >= buf_dblwr->block2
 	    && page_no < buf_dblwr->block2
 	    + TRX_SYS_DOUBLEWRITE_BLOCK_SIZE) {
-		return(TRUE);
+		DBUG_RETURN(TRUE);
 	}
 
-	return(FALSE);
+	DBUG_RETURN(FALSE);
 }
 
 /****************************************************************//**
@@ -95,12 +97,13 @@ buf_dblwr_get(
 {
 	buf_block_t*	block;
 
+	DBUG_ENTER("buf_dblwr_get");
 	block = buf_page_get(page_id_t(TRX_SYS_SPACE, TRX_SYS_PAGE_NO),
 			     univ_page_size, RW_X_LATCH, mtr);
 
 	buf_block_dbg_add_level(block, SYNC_NO_ORDER_CHECK);
 
-	return(buf_block_get_frame(block) + TRX_SYS_DOUBLEWRITE);
+	DBUG_RETURN(buf_block_get_frame(block) + TRX_SYS_DOUBLEWRITE);
 }
 
 /********************************************************************//**
@@ -110,6 +113,7 @@ void
 buf_dblwr_sync_datafiles()
 /*======================*/
 {
+	DBUG_ENTER("buf_dblwr_sync_datafiles");
 	/* Wake possible simulated aio thread to actually post the
 	writes to the operating system */
 	os_aio_simulated_wake_handler_threads();
@@ -120,6 +124,7 @@ buf_dblwr_sync_datafiles()
 
 	/* Now we flush the data to disk (for example, with fsync) */
 	fil_flush_file_spaces(FIL_TYPE_TABLESPACE);
+	DBUG_VOID_RETURN;
 }
 
 /****************************************************************//**
@@ -131,6 +136,7 @@ buf_dblwr_init(
 	byte*	doublewrite)	/*!< in: pointer to the doublewrite buf
 				header on trx sys page */
 {
+	DBUG_ENTER("buf_dblwr_init");
 	ulint	buf_size;
 
 	buf_dblwr = static_cast<buf_dblwr_t*>(
@@ -170,6 +176,7 @@ buf_dblwr_init(
 
 	buf_dblwr->buf_block_arr = static_cast<buf_page_t**>(
 		ut_zalloc_nokey(buf_size * sizeof(void*)));
+	DBUG_VOID_RETURN;
 }
 
 /****************************************************************//**
@@ -181,6 +188,7 @@ bool
 buf_dblwr_create(void)
 /*==================*/
 {
+	DBUG_ENTER("buf_dblwr_create");
 	buf_block_t*	block2;
 	buf_block_t*	new_block;
 	byte*	doublewrite;
@@ -193,7 +201,7 @@ buf_dblwr_create(void)
 	if (buf_dblwr) {
 		/* Already inited */
 
-		return(true);
+		DBUG_RETURN(true);
 	}
 
 start_again:
@@ -211,7 +219,7 @@ start_again:
 
 		mtr_commit(&mtr);
 		buf_dblwr_being_created = FALSE;
-		return(true);
+		DBUG_RETURN(true);
 	}
 
 	ib::info() << "Doublewrite buffer not found: creating new";
@@ -226,7 +234,7 @@ start_again:
 			" increase your buffer pool size. Cannot continue"
 			" operation.";
 
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	block2 = fseg_create(TRX_SYS_SPACE, TRX_SYS_PAGE_NO,
@@ -246,7 +254,7 @@ start_again:
 		/* We exit without committing the mtr to prevent
 		its modifications to the database getting to disk */
 
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	fseg_header = doublewrite + TRX_SYS_DOUBLEWRITE_FSEG;
@@ -261,7 +269,7 @@ start_again:
 				" you must increase your tablespace size."
 				" Cannot continue operation.";
 
-			return(false);
+			DBUG_RETURN(false);
 		}
 
 		/* We read the allocated pages to the buffer pool;
@@ -371,6 +379,7 @@ buf_dblwr_init_or_load_pages(
 	ibool		reset_space_ids = FALSE;
 	recv_dblwr_t&	recv_dblwr = recv_sys->dblwr;
 
+	DBUG_ENTER("buf_dblwr_init_or_load_pages");
 	/* We do the file i/o past the buffer pool */
 
 	unaligned_read_buf = static_cast<byte*>(
@@ -399,7 +408,7 @@ buf_dblwr_init_or_load_pages(
 
 		ut_free(unaligned_read_buf);
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	doublewrite = read_buf + TRX_SYS_DOUBLEWRITE;
@@ -416,7 +425,7 @@ buf_dblwr_init_or_load_pages(
 		buf = buf_dblwr->write_buf;
 	} else {
 		ut_free(unaligned_read_buf);
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	if (mach_read_from_4(doublewrite + TRX_SYS_DOUBLEWRITE_SPACE_ID_STORED)
@@ -447,7 +456,7 @@ buf_dblwr_init_or_load_pages(
 
 		ut_free(unaligned_read_buf);
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	err = os_file_read(
@@ -465,7 +474,7 @@ buf_dblwr_init_or_load_pages(
 
 		ut_free(unaligned_read_buf);
 
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	/* Check if any of these pages is half-written in data files, in the
@@ -511,7 +520,7 @@ buf_dblwr_init_or_load_pages(
 
 				ut_free(unaligned_read_buf);
 
-				return(err);
+				DBUG_RETURN(err);
 			}
 
 		} else {
@@ -528,13 +537,14 @@ buf_dblwr_init_or_load_pages(
 
 	ut_free(unaligned_read_buf);
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /** Process and remove the double write buffer pages for all tablespaces. */
 void
 buf_dblwr_process(void)
 {
+	DBUG_ENTER("buf_dblwr_process");
 	ulint		page_no_dblwr	= 0;
 	byte*		read_buf;
 	byte*		unaligned_read_buf;
@@ -695,6 +705,7 @@ buf_dblwr_process(void)
 
 	fil_flush_file_spaces(FIL_TYPE_TABLESPACE);
 	ut_free(unaligned_read_buf);
+	DBUG_VOID_RETURN;
 }
 
 /****************************************************************//**
@@ -703,6 +714,7 @@ void
 buf_dblwr_free(void)
 /*================*/
 {
+	DBUG_ENTER("buf_dblwr_free");
 	/* Free the double write data structures. */
 	ut_a(buf_dblwr != NULL);
 	ut_ad(buf_dblwr->s_reserved == 0);
@@ -722,6 +734,7 @@ buf_dblwr_free(void)
 	mutex_free(&buf_dblwr->mutex);
 	ut_free(buf_dblwr);
 	buf_dblwr = NULL;
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -732,10 +745,11 @@ buf_dblwr_update(
 	const buf_page_t*	bpage,	/*!< in: buffer block descriptor */
 	buf_flush_t		flush_type)/*!< in: flush type */
 {
+	DBUG_ENTER("buf_dblwr_update");
 	if (!srv_use_doublewrite_buf
 	    || buf_dblwr == NULL
 	    || fsp_is_system_temporary(bpage->id.space())) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	ut_ad(!srv_read_only_mode);
@@ -790,6 +804,7 @@ buf_dblwr_update(
 	case BUF_FLUSH_N_TYPES:
 		ut_error;
 	}
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -800,6 +815,7 @@ buf_dblwr_check_page_lsn(
 /*=====================*/
 	const page_t*	page)		/*!< in: page to check */
 {
+	DBUG_ENTER("buf_dblwr_check_page_lsn");
 	if (memcmp(page + (FIL_PAGE_LSN + 4),
 		   page + (UNIV_PAGE_SIZE
 			   - FIL_PAGE_END_LSN_OLD_CHKSUM + 4),
@@ -816,6 +832,7 @@ buf_dblwr_check_page_lsn(
 			" (" << lsn1 << " != " << lsn2 << ")!"
 			" Noticed in the buffer pool.";
 	}
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -845,10 +862,11 @@ buf_dblwr_check_block(
 /*==================*/
 	const buf_block_t*	block)	/*!< in: block to check */
 {
+	DBUG_ENTER("buf_dblwr_check_block");
 	ut_ad(buf_block_get_state(block) == BUF_BLOCK_FILE_PAGE);
 
 	if (block->skip_flush_check) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	switch (fil_page_get_type(block->frame)) {
@@ -856,10 +874,10 @@ buf_dblwr_check_block(
 	case FIL_PAGE_RTREE:
 		if (page_is_comp(block->frame)) {
 			if (page_simple_validate_new(block->frame)) {
-				return;
+				DBUG_VOID_RETURN;
 			}
 		} else if (page_simple_validate_old(block->frame)) {
-			return;
+			DBUG_VOID_RETURN;
 		}
 		/* While it is possible that this is not an index page
 		but just happens to have wrongly set FIL_PAGE_TYPE,
@@ -881,13 +899,14 @@ buf_dblwr_check_block(
 	case FIL_PAGE_TYPE_ZBLOB:
 	case FIL_PAGE_TYPE_ZBLOB2:
 		/* TODO: validate also non-index pages */
-		return;
+		DBUG_VOID_RETURN;
 	case FIL_PAGE_TYPE_ALLOCATED:
 		/* empty pages should never be flushed */
 		break;
 	}
 
 	buf_dblwr_assert_on_corrupt_block(block);
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -901,6 +920,7 @@ buf_dblwr_write_block_to_datafile(
 	bool			sync)	/*!< in: true if sync IO
 					is requested */
 {
+	DBUG_ENTER("buf_dblwr_write_block_to_datafile");
 	ut_a(buf_page_in_file(bpage));
 
 	ulint	type = IORequest::WRITE;
@@ -934,6 +954,7 @@ buf_dblwr_write_block_to_datafile(
 		       sync, bpage->id, bpage->size, 0, bpage->size.physical(),
 		       block->frame, block);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -946,6 +967,7 @@ void
 buf_dblwr_flush_buffered_writes(void)
 /*=================================*/
 {
+	DBUG_ENTER("buf_dblwr_flush_buffered_writes");
 	byte*		write_buf;
 	ulint		first_free;
 	ulint		len;
@@ -953,7 +975,7 @@ buf_dblwr_flush_buffered_writes(void)
 	if (!srv_use_doublewrite_buf || buf_dblwr == NULL) {
 		/* Sync the writes to the disk. */
 		buf_dblwr_sync_datafiles();
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	ut_ad(!srv_read_only_mode);
@@ -975,7 +997,7 @@ try_again:
 		for doublewrite. */
 		os_aio_simulated_wake_handler_threads();
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (buf_dblwr->batch_running) {
@@ -1086,6 +1108,7 @@ flush:
 	at this point. We leave it to the IO helper thread to flush
 	datafiles when the whole batch has been processed. */
 	os_aio_simulated_wake_handler_threads();
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -1097,6 +1120,7 @@ buf_dblwr_add_to_batch(
 /*====================*/
 	buf_page_t*	bpage)	/*!< in: buffer block to write */
 {
+	DBUG_ENTER("buf_dblwr_add_to_batch");
 	ut_a(buf_page_in_file(bpage));
 
 try_again:
@@ -1161,10 +1185,11 @@ try_again:
 
 		buf_dblwr_flush_buffered_writes();
 
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	mutex_exit(&(buf_dblwr->mutex));
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -1181,6 +1206,7 @@ buf_dblwr_write_single_page(
 	buf_page_t*	bpage,	/*!< in: buffer block to write */
 	bool		sync)	/*!< in: true if sync IO requested */
 {
+	DBUG_ENTER("buf_dblwr_write_single_page");
 	ulint		n_slots;
 	ulint		size;
 	ulint		offset;
@@ -1293,5 +1319,6 @@ retry:
 	and during recovery we will find it in the doublewrite buffer
 	blocks. Next do the write to the intended position. */
 	buf_dblwr_write_block_to_datafile(bpage, sync);
+	DBUG_VOID_RETURN;
 }
 #endif /* !UNIV_HOTBACKUP */

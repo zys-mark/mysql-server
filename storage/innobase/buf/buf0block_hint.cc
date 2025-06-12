@@ -26,12 +26,15 @@ this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "buf0block_hint.h"
 #include "buf0buf.h"
+#include "my_dbug.h"
 namespace buf {
 
 void Block_hint::store(buf_block_t *block) {
+  DBUG_ENTER("Block_hint::store");
   ut_ad(block->page.buf_fix_count > 0);
   m_block = block;
   m_page_id.copy_from(block->page.id);
+  DBUG_VOID_RETURN;
 }
 
 void Block_hint::clear() { m_block = NULL; }
@@ -66,6 +69,7 @@ void Block_hint::buffer_fix_block_if_still_valid() {
   buf_LRU_block_free_hashed_page() without any latch to change the state to
   BUF_BLOCK_MEMORY and reset the page's id, which means buf_resize() can free it
   regardless of our buffer-fixing. */
+  DBUG_ENTER("Block_hint::buffer_fix_block_if_still_valid");
   if (m_block != NULL) {
     const buf_pool_t *const pool = buf_pool_get(m_page_id);
     rw_lock_t *latch = buf_page_hash_lock_get(pool, m_page_id);
@@ -81,10 +85,13 @@ void Block_hint::buffer_fix_block_if_still_valid() {
     }
     rw_lock_s_unlock(latch);
   }
+  DBUG_VOID_RETURN;
 }
 void Block_hint::buffer_unfix_block_if_needed(buf_block_t *block) {
+  DBUG_ENTER("Block_hint::buffer_unfix_block_if_needed");
   if (block != NULL) {
     buf_block_buf_fix_dec(block);
   }
+  DBUG_VOID_RETURN;
 }
 }  // namespace buf

@@ -31,6 +31,7 @@ Buffer pool checksum functions, also linked from /extra/innochecksum.cc
 Created Aug 11, 2011 Vasil Dimov
 *******************************************************/
 
+#include "my_dbug.h"
 #include "univ.i"
 #include "fil0fil.h"
 #include "ut0crc32.h"
@@ -64,6 +65,7 @@ buf_calc_page_crc32(
 	const byte*	page,
 	bool		use_legacy_big_endian /* = false */)
 {
+	DBUG_ENTER("buf_calc_page_crc32");
 	/* Since the field FIL_PAGE_FILE_FLUSH_LSN, and in versions <= 4.1.x
 	FIL_PAGE_ARCH_LOG_NO_OR_SPACE_ID, are written outside the buffer pool
 	to the first pages of data files, we have to skip them in the page
@@ -84,7 +86,7 @@ buf_calc_page_crc32(
 		page + FIL_PAGE_DATA,
 		UNIV_PAGE_SIZE - FIL_PAGE_DATA - FIL_PAGE_END_LSN_OLD_CHKSUM);
 
-	return(c1 ^ c2);
+	DBUG_RETURN(c1 ^ c2);
 }
 
 /********************************************************************//**
@@ -99,6 +101,7 @@ buf_calc_page_new_checksum(
 {
 	ulint checksum;
 
+	DBUG_ENTER("buf_calc_page_new_checksum");
 	/* Since the field FIL_PAGE_FILE_FLUSH_LSN, and in versions <= 4.1.x
 	FIL_PAGE_ARCH_LOG_NO_OR_SPACE_ID, are written outside the buffer pool
 	to the first pages of data files, we have to skip them in the page
@@ -114,7 +117,7 @@ buf_calc_page_new_checksum(
 				 - FIL_PAGE_END_LSN_OLD_CHKSUM);
 	checksum = checksum & 0xFFFFFFFFUL;
 
-	return(checksum);
+	DBUG_RETURN(checksum);
 }
 
 /********************************************************************//**
@@ -130,13 +133,14 @@ buf_calc_page_old_checksum(
 /*=======================*/
 	const byte*	page)	/*!< in: buffer page */
 {
+	DBUG_ENTER("buf_calc_page_old_checksum");
 	ulint checksum;
 
 	checksum = ut_fold_binary(page, FIL_PAGE_FILE_FLUSH_LSN);
 
 	checksum = checksum & 0xFFFFFFFFUL;
 
-	return(checksum);
+	DBUG_RETURN(checksum);
 }
 
 /********************************************************************//**
@@ -147,21 +151,22 @@ buf_checksum_algorithm_name(
 /*========================*/
 	srv_checksum_algorithm_t	algo)	/*!< in: algorithm */
 {
+	DBUG_ENTER("buf_checksum_algorithm_name");
 	switch (algo) {
 	case SRV_CHECKSUM_ALGORITHM_CRC32:
-		return("crc32");
+		DBUG_RETURN("crc32");
 	case SRV_CHECKSUM_ALGORITHM_STRICT_CRC32:
-		return("strict_crc32");
+		DBUG_RETURN("strict_crc32");
 	case SRV_CHECKSUM_ALGORITHM_INNODB:
-		return("innodb");
+		DBUG_RETURN("innodb");
 	case SRV_CHECKSUM_ALGORITHM_STRICT_INNODB:
-		return("strict_innodb");
+		DBUG_RETURN("strict_innodb");
 	case SRV_CHECKSUM_ALGORITHM_NONE:
-		return("none");
+		DBUG_RETURN("none");
 	case SRV_CHECKSUM_ALGORITHM_STRICT_NONE:
-		return("strict_none");
+		DBUG_RETURN("strict_none");
 	}
 
 	ut_error;
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
