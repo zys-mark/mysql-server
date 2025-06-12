@@ -34,6 +34,7 @@ Created 1/8/1996 Heikki Tuuri
 #include "ha_prototypes.h"
 
 #include "dict0crea.h"
+#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "dict0crea.ic"
@@ -71,6 +72,7 @@ dict_create_sys_tables_tuple(
 					which the memory for the built
 					tuple is allocated */
 {
+	DBUG_ENTER("dict_create_sys_tables_tuple");
 	dict_table_t*	sys_tables;
 	dtuple_t*	entry;
 	dfield_t*	dfield;
@@ -165,7 +167,7 @@ dict_create_sys_tables_tuple(
 	dfield_set_data(dfield, ptr, 4);
 	/*----------------------------------*/
 
-	return(entry);
+	DBUG_RETURN(entry);
 }
 
 /*****************************************************************//**
@@ -182,6 +184,7 @@ dict_create_sys_columns_tuple(
 					which the memory for the built
 					tuple is allocated */
 {
+	DBUG_ENTER("dict_create_sys_columns_tuple");
 	dict_table_t*		sys_columns;
 	dtuple_t*		entry;
 	const dict_col_t*	column;
@@ -282,7 +285,7 @@ dict_create_sys_columns_tuple(
 	dfield_set_data(dfield, ptr, 4);
 	/*---------------------------------*/
 
-	return(entry);
+	DBUG_RETURN(entry);
 }
 
 /** Based on a table object, this function builds the entry to be inserted
@@ -301,6 +304,7 @@ dict_create_sys_virtual_tuple(
 	ulint			b_col_n,
 	mem_heap_t*		heap)
 {
+	DBUG_ENTER("dict_create_sys_virtual_tuple");
 	dict_table_t*		sys_virtual;
 	dtuple_t*		entry;
 	const dict_col_t*	base_column;
@@ -350,7 +354,7 @@ dict_create_sys_virtual_tuple(
 	/* 4: DB_ROLL_PTR added later */
 
 	/*---------------------------------*/
-	return(entry);
+	DBUG_RETURN(entry);
 }
 
 /***************************************************************//**
@@ -363,6 +367,7 @@ dict_build_table_def_step(
 	que_thr_t*	thr,	/*!< in: query thread */
 	tab_node_t*	node)	/*!< in: table create node */
 {
+	DBUG_ENTER("dict_build_table_def_step");
 	dict_table_t*	table;
 	dtuple_t*	row;
 	dberr_t		err = DB_SUCCESS;
@@ -374,14 +379,14 @@ dict_build_table_def_step(
 
 	err = dict_build_tablespace_for_table(table);
 	if (err != DB_SUCCESS) {
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	row = dict_create_sys_tables_tuple(table, node->heap);
 
 	ins_node_set_new_row(node->tab_def, row);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /** Build a tablespace to store various objects.
@@ -391,6 +396,7 @@ dberr_t
 dict_build_tablespace(
 	Tablespace*	tablespace)
 {
+	DBUG_ENTER("dict_build_tablespace");
 	dberr_t		err	= DB_SUCCESS;
 	mtr_t		mtr;
 	ulint		space = 0;
@@ -399,11 +405,11 @@ dict_build_tablespace(
 	ut_ad(tablespace);
 
         DBUG_EXECUTE_IF("out_of_tablespace_disk",
-                         return(DB_OUT_OF_FILE_SPACE););
+                         DBUG_RETURN(DB_OUT_OF_FILE_SPACE););
 	/* Get a new space id. */
 	dict_hdr_get_new_id(NULL, NULL, &space, NULL, false);
 	if (space == ULINT_UNDEFINED) {
-		return(DB_ERROR);
+		DBUG_RETURN(DB_ERROR);
 	}
 	tablespace->set_space_id(space);
 
@@ -424,7 +430,7 @@ dict_build_tablespace(
 		tablespace->flags(),
 		FIL_IBD_FILE_INITIAL_SIZE);
 	if (err != DB_SUCCESS) {
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	/* Update SYS_TABLESPACES and SYS_DATAFILES */
@@ -433,7 +439,7 @@ dict_build_tablespace(
 		datafile->filepath(), tablespace->flags());
 	if (err != DB_SUCCESS) {
 		os_file_delete(innodb_data_file_key, datafile->filepath());
-		return(err);
+		DBUG_RETURN(err);
 	}
 
 	mtr_start(&mtr);
@@ -447,10 +453,10 @@ dict_build_tablespace(
 	mtr_commit(&mtr);
 
 	if (!ret) {
-		return(DB_ERROR);
+		DBUG_RETURN(DB_ERROR);
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /** Builds a tablespace to contain a table, using file-per-table=1.
@@ -460,6 +466,7 @@ dberr_t
 dict_build_tablespace_for_table(
 	dict_table_t*	table)
 {
+	DBUG_ENTER("dict_build_tablespace_for_table");
 	dberr_t		err	= DB_SUCCESS;
 	mtr_t		mtr;
 	ulint		space = 0;
@@ -493,7 +500,7 @@ dict_build_tablespace_for_table(
 		);
 
 		if (space == ULINT_UNDEFINED) {
-			return(DB_ERROR);
+			DBUG_RETURN(DB_ERROR);
 		}
 		table->space = static_cast<unsigned int>(space);
 
@@ -543,7 +550,7 @@ dict_build_tablespace_for_table(
 
 		if (err != DB_SUCCESS) {
 
-			return(err);
+			DBUG_RETURN(err);
 		}
 
 		mtr_start(&mtr);
@@ -556,7 +563,7 @@ dict_build_tablespace_for_table(
 
 		mtr_commit(&mtr);
 		if (!ret) {
-			return(DB_ERROR);
+			DBUG_RETURN(DB_ERROR);
 		}
 	} else {
 		/* We do not need to build a tablespace for this table. It
@@ -585,7 +592,7 @@ dict_build_tablespace_for_table(
 				DBUG_SUICIDE(););
 	}
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /***************************************************************//**
@@ -596,11 +603,13 @@ dict_build_col_def_step(
 /*====================*/
 	tab_node_t*	node)	/*!< in: table create node */
 {
+	DBUG_ENTER("dict_build_col_def_step");
 	dtuple_t*	row;
 
 	row = dict_create_sys_columns_tuple(node->table, node->col_no,
 					    node->heap);
 	ins_node_set_new_row(node->col_def, row);
+	DBUG_VOID_RETURN;
 }
 
 /** Builds a SYS_VIRTUAL row definition to insert.
@@ -610,12 +619,14 @@ void
 dict_build_v_col_def_step(
 	tab_node_t*	node)
 {
+	DBUG_ENTER("dict_build_v_col_def_step");
 	dtuple_t*	row;
 
 	row = dict_create_sys_virtual_tuple(node->table, node->col_no,
 					    node->base_col_no,
 					    node->heap);
 	ins_node_set_new_row(node->v_col_def, row);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -631,6 +642,7 @@ dict_create_sys_indexes_tuple(
 					which the memory for the built
 					tuple is allocated */
 {
+	DBUG_ENTER("dict_create_sys_indexes_tuple");
 	dict_table_t*	sys_indexes;
 	dict_table_t*	table;
 	dtuple_t*	entry;
@@ -735,7 +747,7 @@ dict_create_sys_indexes_tuple(
 
 	/*--------------------------------*/
 
-	return(entry);
+	DBUG_RETURN(entry);
 }
 
 /*****************************************************************//**
@@ -752,6 +764,7 @@ dict_create_sys_fields_tuple(
 					which the memory for the built
 					tuple is allocated */
 {
+	DBUG_ENTER("dict_create_sys_fields_tuple");
 	dict_table_t*	sys_fields;
 	dtuple_t*	entry;
 	dict_field_t*	field;
@@ -817,7 +830,7 @@ dict_create_sys_fields_tuple(
 			ut_strlen(field->name));
 	/*---------------------------------*/
 
-	return(entry);
+	DBUG_RETURN(entry);
 }
 
 /*****************************************************************//**
@@ -833,6 +846,7 @@ dict_create_search_tuple(
 	mem_heap_t*	heap)	/*!< in: memory heap from which the memory for
 				the built tuple is allocated */
 {
+	DBUG_ENTER("dict_create_search_tuple");
 	dtuple_t*	search_tuple;
 	const dfield_t*	field1;
 	dfield_t*	field2;
@@ -853,7 +867,7 @@ dict_create_search_tuple(
 
 	ut_ad(dtuple_validate(search_tuple));
 
-	return(search_tuple);
+	DBUG_RETURN(search_tuple);
 }
 
 /***************************************************************//**
@@ -866,6 +880,7 @@ dict_build_index_def_step(
 	que_thr_t*	thr,	/*!< in: query thread */
 	ind_node_t*	node)	/*!< in: index create node */
 {
+	DBUG_ENTER("dict_build_index_def_step");
 	dict_table_t*	table;
 	dict_index_t*	index;
 	dtuple_t*	row;
@@ -880,7 +895,7 @@ dict_build_index_def_step(
 	table = dict_table_get_low(index->table_name);
 
 	if (table == NULL) {
-		return(DB_TABLE_NOT_FOUND);
+		DBUG_RETURN(DB_TABLE_NOT_FOUND);
 	}
 
 	if (!trx->table_id) {
@@ -910,7 +925,7 @@ dict_build_index_def_step(
 	ut_ad(table->def_trx_id <= trx->id);
 	table->def_trx_id = trx->id;
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /***************************************************************//**
@@ -923,6 +938,7 @@ dict_build_index_def(
 	dict_index_t*		index,	/*!< in/out: index */
 	trx_t*			trx)	/*!< in/out: InnoDB transaction handle */
 {
+	DBUG_ENTER("dict_build_index_def");
 	ut_ad(mutex_own(&dict_sys->mutex) || dict_table_is_intrinsic(table));
 
 	if (trx->table_id == 0) {
@@ -953,6 +969,7 @@ dict_build_index_def(
 
 	/* Note that the index was created by this transaction. */
 	index->trx_id = trx->id;
+	DBUG_VOID_RETURN;
 }
 
 /***************************************************************//**
@@ -963,6 +980,7 @@ dict_build_field_def_step(
 /*======================*/
 	ind_node_t*	node)	/*!< in: index create node */
 {
+	DBUG_ENTER("dict_build_field_def_step");
 	dict_index_t*	index;
 	dtuple_t*	row;
 
@@ -971,6 +989,7 @@ dict_build_field_def_step(
 	row = dict_create_sys_fields_tuple(index, node->field_no, node->heap);
 
 	ins_node_set_new_row(node->field_def, row);
+	DBUG_VOID_RETURN;
 }
 
 /***************************************************************//**
@@ -982,6 +1001,7 @@ dict_create_index_tree_step(
 /*========================*/
 	ind_node_t*	node)	/*!< in: index create node */
 {
+	DBUG_ENTER("dict_create_index_tree_step");
 	mtr_t		mtr;
 	btr_pcur_t	pcur;
 	dict_index_t*	index;
@@ -996,7 +1016,7 @@ dict_create_index_tree_step(
 
 	if (index->type == DICT_FTS) {
 		/* FTS index does not need an index tree */
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	/* Run a mini-transaction in which the index tree is allocated for
@@ -1048,7 +1068,7 @@ dict_create_index_tree_step(
 
 	mtr_commit(&mtr);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /***************************************************************//**
@@ -1061,6 +1081,7 @@ dict_create_index_tree_in_mem(
 	dict_index_t*	index,	/*!< in/out: index */
 	const trx_t*	trx)	/*!< in: InnoDB transaction handle */
 {
+	DBUG_ENTER("dict_create_index_tree_in_mem");
 	mtr_t		mtr;
 	ulint		page_no = FIL_NULL;
 
@@ -1069,7 +1090,7 @@ dict_create_index_tree_in_mem(
 
 	if (index->type == DICT_FTS) {
 		/* FTS index does not need an index tree */
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	mtr_start(&mtr);
@@ -1096,7 +1117,7 @@ dict_create_index_tree_in_mem(
 
 	mtr_commit(&mtr);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /** Drop the index tree associated with a row in SYS_INDEXES table.
@@ -1179,6 +1200,7 @@ dict_drop_index_tree_in_mem(
 	const dict_index_t*	index,		/*!< in: index */
 	ulint			page_no)	/*!< in: index page-no */
 {
+	DBUG_ENTER("dict_drop_index_tree_in_mem");
 	ut_ad(mutex_own(&dict_sys->mutex)
 	      || dict_table_is_intrinsic(index->table));
 	ut_ad(dict_table_is_temporary(index->table));
@@ -1195,6 +1217,7 @@ dict_drop_index_tree_in_mem(
 	if (root_page_no != FIL_NULL && found) {
 		btr_free(page_id_t(space, root_page_no), page_size);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*******************************************************************//**
@@ -1212,6 +1235,7 @@ dict_recreate_index_tree(
 	mtr_t*		mtr)	/*!< in/out: mtr having the latch
 				on the record page. */
 {
+	DBUG_ENTER("dict_recreate_index_tree");
 	ut_ad(mutex_own(&dict_sys->mutex));
 	ut_a(!dict_table_is_comp(dict_sys->sys_indexes));
 
@@ -1243,7 +1267,7 @@ dict_recreate_index_tree(
 			<< "Trying to TRUNCATE a missing .ibd file of table "
 			<< table->name << "!";
 
-		return(FIL_NULL);
+		DBUG_RETURN(FIL_NULL);
 	}
 
 	ptr = rec_get_nth_field_old(rec, DICT_FLD__SYS_INDEXES__TYPE, &len);
@@ -1270,13 +1294,13 @@ dict_recreate_index_tree(
 	     index = UT_LIST_GET_NEXT(indexes, index)) {
 		if (index->id == index_id) {
 			if (index->type & DICT_FTS) {
-				return(FIL_NULL);
+				DBUG_RETURN(FIL_NULL);
 			} else {
 				root_page_no = btr_create(
 					type, space, page_size, index_id,
 					index, NULL, mtr);
 				index->page = (unsigned int) root_page_no;
-				return(root_page_no);
+				DBUG_RETURN(root_page_no);
 			}
 		}
 	}
@@ -1284,7 +1308,7 @@ dict_recreate_index_tree(
 	ib::error() << "Failed to create index with index id " << index_id
 		<< " of table " << table->name;
 
-	return(FIL_NULL);
+	DBUG_RETURN(FIL_NULL);
 }
 
 /*******************************************************************//**
@@ -1295,6 +1319,7 @@ dict_truncate_index_tree_in_mem(
 /*============================*/
 	dict_index_t*	index)		/*!< in/out: index */
 {
+DBUG_ENTER("dict_truncate_index_tree_in_mem");
 	mtr_t		mtr;
 	bool		truncate;
 	ulint		space = index->space;
@@ -1352,7 +1377,7 @@ dict_truncate_index_tree_in_mem(
 
 	mtr_commit(&mtr);
 
-	return(index->page == FIL_NULL ? DB_ERROR : DB_SUCCESS);
+	DBUG_RETURN(index->page == FIL_NULL ? DB_ERROR : DB_SUCCESS);
 }
 
 /*********************************************************************//**
@@ -1365,6 +1390,7 @@ tab_create_graph_create(
 				structure */
 	mem_heap_t*	heap)	/*!< in: heap where created */
 {
+	DBUG_ENTER("tab_create_graph_create");
 	tab_node_t*	node;
 
 	node = static_cast<tab_node_t*>(
@@ -1389,7 +1415,7 @@ tab_create_graph_create(
                                           heap);
 	node->v_col_def->common.parent = node;
 
-	return(node);
+	DBUG_RETURN(node);
 }
 
 /** Creates an index create graph.
@@ -1440,6 +1466,7 @@ dict_create_table_step(
 /*===================*/
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("dict_create_table_step");
 	tab_node_t*	node;
 	dberr_t		err	= DB_ERROR;
 	trx_t*		trx;
@@ -1473,7 +1500,7 @@ dict_create_table_step(
 
 		thr->run_node = node->tab_def;
 
-		return(thr);
+		DBUG_RETURN(thr);
 	}
 
 	if (node->state == TABLE_BUILD_COL_DEF) {
@@ -1487,7 +1514,7 @@ dict_create_table_step(
 
 			thr->run_node = node->col_def;
 
-			return(thr);
+			DBUG_RETURN(thr);
 		} else {
 			/* Move on to SYS_VIRTUAL table */
 			node->col_no = 0;
@@ -1531,7 +1558,7 @@ dict_create_table_step(
 
 				thr->run_node = node->v_col_def;
 
-				return(thr);
+				DBUG_RETURN(thr);
 			}
 		} else {
 			node->state = TABLE_ADD_TO_CACHE;
@@ -1554,16 +1581,16 @@ function_exit:
 
 	} else if (err == DB_LOCK_WAIT) {
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	} else {
 		/* SQL error detected */
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	thr->run_node = que_node_get_parent(node);
 
-	return(thr);
+	DBUG_RETURN(thr);
 }
 
 /***********************************************************//**
@@ -1575,6 +1602,7 @@ dict_create_index_step(
 /*===================*/
 	que_thr_t*	thr)	/*!< in: query thread */
 {
+	DBUG_ENTER("dict_create_index_step");
 	ind_node_t*	node;
 	dberr_t		err	= DB_ERROR;
 	trx_t*		trx;
@@ -1606,7 +1634,7 @@ dict_create_index_step(
 
 		thr->run_node = node->ind_def;
 
-		return(thr);
+		DBUG_RETURN(thr);
 	}
 
 	if (node->state == INDEX_BUILD_FIELD_DEF) {
@@ -1619,7 +1647,7 @@ dict_create_index_step(
 
 			thr->run_node = node->field_def;
 
-			return(thr);
+			DBUG_RETURN(thr);
 		} else {
 			node->state = INDEX_ADD_TO_CACHE;
 		}
@@ -1701,16 +1729,16 @@ function_exit:
 
 	} else if (err == DB_LOCK_WAIT) {
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	} else {
 		/* SQL error detected */
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	thr->run_node = que_node_get_parent(node);
 
-	return(thr);
+	DBUG_RETURN(thr);
 }
 
 /****************************************************************//**
@@ -1729,6 +1757,7 @@ dict_check_if_system_table_exists(
 	ulint		num_fields,	/*!< in: number of fields */
 	ulint		num_indexes)	/*!< in: number of indexes */
 {
+	DBUG_ENTER("dict_check_if_system_table_exists");
 	dict_table_t*	sys_table;
 	dberr_t		error = DB_SUCCESS;
 
@@ -1754,7 +1783,7 @@ dict_check_if_system_table_exists(
 
 	mutex_exit(&dict_sys->mutex);
 
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /****************************************************************//**
@@ -1766,6 +1795,7 @@ dberr_t
 dict_create_or_check_foreign_constraint_tables(void)
 /*================================================*/
 {
+	DBUG_ENTER("dict_create_or_check_foreign_constraint_tables");
 	trx_t*		trx;
 	my_bool		srv_file_per_table_backup;
 	dberr_t		err;
@@ -1784,7 +1814,7 @@ dict_create_or_check_foreign_constraint_tables(void)
 
 	if (sys_foreign_err == DB_SUCCESS
 	    && sys_foreign_cols_err == DB_SUCCESS) {
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	trx = trx_allocate_for_mysql();
@@ -1889,7 +1919,7 @@ dict_create_or_check_foreign_constraint_tables(void)
 		"SYS_FOREIGN_COLS", DICT_NUM_FIELDS__SYS_FOREIGN_COLS + 1, 1);
 	ut_a(sys_foreign_cols_err == DB_SUCCESS);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /** Creates the virtual column system table (SYS_VIRTUAL) inside InnoDB
@@ -1899,6 +1929,7 @@ not of the right form.
 dberr_t
 dict_create_or_check_sys_virtual()
 {
+	DBUG_ENTER("dict_create_or_check_sys_virtual");
 	trx_t*		trx;
 	my_bool		srv_file_per_table_backup;
 	dberr_t		err;
@@ -1913,14 +1944,14 @@ dict_create_or_check_sys_virtual()
 		mutex_enter(&dict_sys->mutex);
 		dict_sys->sys_virtual = dict_table_get_low("SYS_VIRTUAL");
 		mutex_exit(&dict_sys->mutex);
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	if (srv_force_recovery >= SRV_FORCE_NO_TRX_UNDO
 	    || srv_read_only_mode) {
 		ib::error() << "Cannot create sys_virtual system tables;"
 			" running in read-only mode.";
-		return(DB_ERROR);
+		DBUG_RETURN(DB_ERROR);
 	}
 
 	trx = trx_allocate_for_mysql();
@@ -1998,7 +2029,7 @@ dict_create_or_check_sys_virtual()
 	dict_sys->sys_virtual = dict_table_get_low("SYS_VIRTUAL");
 	mutex_exit(&dict_sys->mutex);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /****************************************************************//**
@@ -2014,6 +2045,7 @@ dict_foreign_eval_sql(
 	const char*	id,	/*!< in: foreign key id */
 	trx_t*		trx)	/*!< in/out: transaction */
 {
+	DBUG_ENTER("dict_foreign_eval_sql");
 	dberr_t	error;
 	FILE*	ef	= dict_foreign_err_file;
 
@@ -2042,7 +2074,7 @@ dict_foreign_eval_sql(
 
 		mutex_exit(&dict_foreign_err_mutex);
 
-		return(error);
+		DBUG_RETURN(error);
 	}
 
 	if (error != DB_SUCCESS) {
@@ -2059,10 +2091,10 @@ dict_foreign_eval_sql(
 		      " for more information.\n", ef);
 		mutex_exit(&dict_foreign_err_mutex);
 
-		return(error);
+		DBUG_RETURN(error);
 	}
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /********************************************************************//**
@@ -2169,14 +2201,15 @@ dict_index_has_col_by_name(
 	const char*		col_name,
 	const dict_index_t*	index)
 {
+	DBUG_ENTER("dict_index_has_col_by_name");
         for (ulint i = 0; i < index->n_fields; i++) {
                 dict_field_t*   field = dict_index_get_nth_field(index, i);
 
 		if (strcmp(field->name, col_name) == 0) {
-			return(true);
+			DBUG_RETURN(true);
 		}
 	}
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /** Check whether the foreign constraint could be on a column that is
@@ -2189,6 +2222,7 @@ dict_foreign_has_col_in_v_index(
 	const char*		fk_col_name,
 	const dict_table_t*	table)
 {
+	DBUG_ENTER("dict_foreign_has_col_in_v_index");
 	/* virtual column can't be Primary Key, so start with secondary index */
 	for (dict_index_t* index = dict_table_get_next_index(
 		     dict_table_get_first_index(table));
@@ -2197,12 +2231,12 @@ dict_foreign_has_col_in_v_index(
 
 		if (dict_index_has_virtual(index)) {
 			if (dict_index_has_col_by_name(fk_col_name, index)) {
-				return(true);
+				DBUG_RETURN(true);
 			}
 		}
 	}
 
-	return(false);
+	DBUG_RETURN(false);
 }
 
 
@@ -2216,6 +2250,7 @@ dict_foreign_has_col_as_base_col(
 	const char*		col_name,
 	const dict_table_t*	table)
 {
+	DBUG_ENTER("dict_foreign_has_col_as_base_col");
 	/* Loop through each virtual column and check if its base column has
 	the same name as the column name being checked */
 	for (ulint i = 0; i < table->n_v_cols; i++) {
@@ -2230,12 +2265,12 @@ dict_foreign_has_col_as_base_col(
 			if (strcmp(col_name, dict_table_get_col_name(
 					   table,
 					   v_col->base_col[j]->ind)) == 0) {
-				return(true);
+				DBUG_RETURN(true);
 			}
 		}
 	}
 
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /** Check if a foreign constraint is on the given column name.
@@ -2248,6 +2283,7 @@ dict_foreign_base_for_stored(
 	const char*		col_name,
 	const dict_table_t*	table)
 {
+	DBUG_ENTER("dict_foreign_base_for_stored");
 	/* Loop through each stored column and check if its base column has
 	the same name as the column name being checked */
 	dict_s_col_list::const_iterator	it;
@@ -2266,12 +2302,12 @@ dict_foreign_base_for_stored(
 			if (strcmp(col_name, dict_table_get_col_name(
 						table,
 						s_col.base_col[j]->ind)) == 0) {
-				return(true);
+				DBUG_RETURN(true);
 			}
 		}
 	}
 
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /** Check if a foreign constraint is on columns served as base columns
@@ -2287,6 +2323,7 @@ dict_foreigns_has_s_base_col(
 	const dict_foreign_set&	local_fk_set,
 	const dict_table_t*	table)
 {
+	DBUG_ENTER("dict_foreigns_has_s_base_col");
 	dict_foreign_t*	foreign;
 
 	if (table->s_cols == NULL) {
@@ -2311,12 +2348,12 @@ dict_foreigns_has_s_base_col(
 			is a base column of any stored column */
 			if (dict_foreign_base_for_stored(
 				foreign->foreign_col_names[i], table)) {
-				return(true);
+				DBUG_RETURN(true);
 			}
 		}
 	}
 
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /** Check if a column is in foreign constraint with CASCADE properties or
@@ -2329,6 +2366,7 @@ dict_foreigns_has_this_col(
 	const dict_table_t*	table,
 	const char*		col_name)
 {
+	DBUG_ENTER("dict_foreigns_has_this_col");
 	dict_foreign_t*		foreign;
 	const dict_foreign_set*	local_fk_set = &table->foreign_set;
 
@@ -2349,11 +2387,11 @@ dict_foreigns_has_this_col(
 		for (ulint i = 0; i < foreign->n_fields; i++) {
 			if (strcmp(foreign->foreign_col_names[i],
 				   col_name) == 0) {
-				return(true);
+				DBUG_RETURN(true);
 			}
 		}
 	}
-	return(false);
+	DBUG_RETURN(false);
 }
 
 /** Adds the given set of foreign key objects to the dictionary tables
@@ -2373,6 +2411,7 @@ dict_create_add_foreigns_to_dictionary(
 	const dict_table_t*	table,
 	trx_t*			trx)
 {
+	DBUG_ENTER("dict_create_add_foreigns_to_dictionary");
 	dict_foreign_t*	foreign;
 	dberr_t		error;
 
@@ -2388,7 +2427,7 @@ dict_create_add_foreigns_to_dictionary(
 		ib::error() << "Table SYS_FOREIGN not found"
 			" in internal data dictionary";
 
-		return(DB_ERROR);
+		DBUG_RETURN(DB_ERROR);
 	}
 
 	for (dict_foreign_set::const_iterator it = local_fk_set.begin();
@@ -2403,7 +2442,7 @@ dict_create_add_foreigns_to_dictionary(
 
 		if (error != DB_SUCCESS) {
 
-			return(error);
+			DBUG_RETURN(error);
 		}
 	}
 
@@ -2417,7 +2456,7 @@ exit_loop:
 
 	trx->op_info = "";
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /****************************************************************//**
@@ -2429,6 +2468,7 @@ dberr_t
 dict_create_or_check_sys_tablespace(void)
 /*=====================================*/
 {
+	DBUG_ENTER("dict_create_or_check_sys_tablespace");
 	trx_t*		trx;
 	my_bool		srv_file_per_table_backup;
 	dberr_t		err;
@@ -2446,7 +2486,7 @@ dict_create_or_check_sys_tablespace(void)
 
 	if (sys_tablespaces_err == DB_SUCCESS
 	    && sys_datafiles_err == DB_SUCCESS) {
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	trx = trx_allocate_for_mysql();
@@ -2534,7 +2574,7 @@ dict_create_or_check_sys_tablespace(void)
 		"SYS_DATAFILES", DICT_NUM_FIELDS__SYS_DATAFILES + 1, 1);
 	ut_a(sys_datafiles_err == DB_SUCCESS);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /** Put a tablespace definition into the data dictionary,
@@ -2555,9 +2595,10 @@ dict_replace_tablespace_in_dictionary(
 	trx_t*		trx,
 	bool		commit)
 {
+	DBUG_ENTER("dict_replace_tablespace_in_dictionary");
 	if (!srv_sys_tablespaces_open) {
 		/* Startup procedure is not yet ready for updates. */
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	dberr_t		error;
@@ -2599,7 +2640,7 @@ dict_replace_tablespace_in_dictionary(
 			     FALSE, trx);
 
 	if (error != DB_SUCCESS) {
-		return(error);
+		DBUG_RETURN(error);
 	}
 
 	if (commit) {
@@ -2609,7 +2650,7 @@ dict_replace_tablespace_in_dictionary(
 
 	trx->op_info = "";
 
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /** Delete records from SYS_TABLESPACES and SYS_DATAFILES associated
@@ -2623,6 +2664,7 @@ dict_delete_tablespace_and_datafiles(
 	ulint		space,
 	trx_t*		trx)
 {
+	DBUG_ENTER("dict_delete_tablespace_and_datafiles");
 	dberr_t		err = DB_SUCCESS;
 
 	ut_ad(rw_lock_own(dict_operation_lock, RW_LOCK_X));
@@ -2652,7 +2694,7 @@ dict_delete_tablespace_and_datafiles(
 
 	trx->op_info = "";
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /** Assign a new table ID and put it into the table cache and the transaction.
@@ -2663,6 +2705,7 @@ dict_table_assign_new_id(
 	dict_table_t*	table,
 	trx_t*		trx)
 {
+	DBUG_ENTER("dict_table_assign_new_id");
 	if (dict_table_is_intrinsic(table)) {
 		/* There is no significance of this table->id (if table is
 		intrinsic) so assign it default instead of something meaningful
@@ -2673,4 +2716,5 @@ dict_table_assign_new_id(
 	}
 
 	trx->table_id = table->id;
+	DBUG_VOID_RETURN;
 }

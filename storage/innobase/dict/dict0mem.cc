@@ -32,6 +32,7 @@ Data dictionary memory object creation
 Created 1/8/1996 Heikki Tuuri
 ***********************************************************************/
 
+#include "my_dbug.h"
 #ifndef UNIV_HOTBACKUP
 #include "ha_prototypes.h"
 #include <mysql_com.h>
@@ -259,6 +260,7 @@ dict_add_col_name(
 	const char*	name,		/*!< in: new column name */
 	mem_heap_t*	heap)		/*!< in: heap */
 {
+	DBUG_ENTER("dict_add_col_name");
 	ulint	old_len;
 	ulint	new_len;
 	ulint	total_len;
@@ -291,7 +293,7 @@ dict_add_col_name(
 
 	memcpy(res + old_len, name, new_len);
 
-	return(res);
+	DBUG_RETURN(res);
 }
 
 /**********************************************************************//**
@@ -472,6 +474,7 @@ dict_mem_table_col_rename_low(
 	bool		is_virtual)
 				/*!< in: if this is a virtual column */
 {
+	DBUG_ENTER("dict_mem_table_col_rename_low");
 	char*	t_col_names = const_cast<char*>(
 		is_virtual ? table->v_col_names : table->col_names);
 	ulint	n_col = is_virtual ? table->n_v_def : table->n_def;
@@ -565,7 +568,7 @@ dict_mem_table_col_rename_low(
 
 	/* Virtual columns are not allowed for foreign key */
 	if (is_virtual) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	dict_foreign_t*	foreign;
@@ -621,6 +624,7 @@ dict_mem_table_col_rename_low(
 			}
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /**********************************************************************//**
@@ -842,6 +846,7 @@ dict_mem_fill_vcol_has_index(
 	const dict_index_t*	index,
 	dict_vcol_set**		v_cols)
 {
+	DBUG_ENTER("dict_mem_fill_vcol_has_index");
 	for (ulint i = 0; i < index->table->n_v_cols; i++) {
 		dict_v_col_t*	v_col = dict_table_get_nth_v_col(
 					index->table, i);
@@ -865,6 +870,7 @@ dict_mem_fill_vcol_has_index(
 			(*v_cols)->insert(v_col);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Fill the virtual column set with the virtual column of the index
@@ -879,6 +885,7 @@ dict_mem_fill_vcol_from_v_indexes(
 	const dict_table_t*	table,
 	dict_vcol_set**		v_cols)
 {
+	DBUG_ENTER("dict_mem_fill_vcol_from_v_indexes");
 	/* virtual column can't be Primary Key, so start with
 	secondary index */
 	for (dict_index_t* index = dict_table_get_next_index(
@@ -905,6 +912,7 @@ dict_mem_fill_vcol_from_v_indexes(
 			}
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Fill the virtual column set with virtual columns which have base columns
@@ -919,6 +927,7 @@ dict_mem_fill_vcol_set_for_base_col(
 	const dict_table_t*	table,
 	dict_vcol_set**		v_cols)
 {
+	DBUG_ENTER("dict_mem_fill_vcol_set_for_base_col");
 	for (ulint i = 0; i < table->n_v_cols; i++) {
 		dict_v_col_t*	v_col = dict_table_get_nth_v_col(table, i);
 
@@ -939,6 +948,7 @@ dict_mem_fill_vcol_set_for_base_col(
 			}
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Fills the dependent virtual columns in a set.

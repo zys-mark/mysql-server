@@ -34,6 +34,7 @@ Created Apr 25, 2012 Vasil Dimov
 #include "dict0dict.h"
 #include "dict0stats.h"
 #include "dict0stats_bg.h"
+#include "my_dbug.h"
 #include "row0mysql.h"
 #include "srv0start.h"
 #include "ut0new.h"
@@ -100,6 +101,7 @@ void
 dict_stats_recalc_pool_init()
 /*=========================*/
 {
+	DBUG_ENTER("dict_stats_recalc_pool_init");
 	ut_ad(!srv_read_only_mode);
 
 	const PSI_memory_key	key = mem_key_dict_stats_bg_recalc_pool_t;
@@ -107,6 +109,7 @@ dict_stats_recalc_pool_init()
 	recalc_pool = UT_NEW(recalc_pool_t(recalc_pool_allocator_t(key)), key);
 
 	recalc_pool->reserve(RECALC_POOL_INITIAL_SLOTS);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -117,11 +120,13 @@ void
 dict_stats_recalc_pool_deinit()
 /*===========================*/
 {
+	DBUG_ENTER("dict_stats_recalc_pool_deinit");
 	ut_ad(!srv_read_only_mode);
 
 	recalc_pool->clear();
 
 	UT_DELETE(recalc_pool);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -135,6 +140,7 @@ dict_stats_recalc_pool_add(
 /*=======================*/
 	const dict_table_t*	table)	/*!< in: table to add */
 {
+	DBUG_ENTER("dict_stats_recalc_pool_add");
 	ut_ad(!srv_read_only_mode);
 
 	mutex_enter(&recalc_pool_mutex);
@@ -146,7 +152,7 @@ dict_stats_recalc_pool_add(
 
 		if (*iter == table->id) {
 			mutex_exit(&recalc_pool_mutex);
-			return;
+			DBUG_VOID_RETURN;
 		}
 	}
 
@@ -155,6 +161,7 @@ dict_stats_recalc_pool_add(
 	mutex_exit(&recalc_pool_mutex);
 
 	os_event_set(dict_stats_event);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -168,13 +175,14 @@ dict_stats_recalc_pool_get(
 	table_id_t*	id)	/*!< out: table id, or unmodified if list is
 				empty */
 {
+	DBUG_ENTER("dict_stats_recalc_pool_get");
 	ut_ad(!srv_read_only_mode);
 
 	mutex_enter(&recalc_pool_mutex);
 
 	if (recalc_pool->empty()) {
 		mutex_exit(&recalc_pool_mutex);
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	*id = recalc_pool->at(0);
@@ -183,7 +191,7 @@ dict_stats_recalc_pool_get(
 
 	mutex_exit(&recalc_pool_mutex);
 
-	return(true);
+	DBUG_RETURN(true);
 }
 
 /*****************************************************************//**
@@ -194,6 +202,7 @@ dict_stats_recalc_pool_del(
 /*=======================*/
 	const dict_table_t*	table)	/*!< in: table to remove */
 {
+	DBUG_ENTER("dict_stats_recalc_pool_del");
 	ut_ad(!srv_read_only_mode);
 	ut_ad(mutex_own(&dict_sys->mutex));
 
@@ -213,6 +222,7 @@ dict_stats_recalc_pool_del(
 	}
 
 	mutex_exit(&recalc_pool_mutex);
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -231,9 +241,11 @@ dict_stats_wait_bg_to_stop_using_table(
 	trx_t*		trx)	/*!< in/out: transaction to use for
 				unlocking/locking the data dict */
 {
+	DBUG_ENTER("dict_stats_wait_bg_to_stop_using_table");
 	while (!dict_stats_stop_bg(table)) {
 		DICT_BG_YIELD(trx);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -243,6 +255,7 @@ void
 dict_stats_thread_init()
 /*====================*/
 {
+	DBUG_ENTER("dict_stats_thread_init");
 	ut_a(!srv_read_only_mode);
 
 	dict_stats_event = os_event_create(0);
@@ -267,6 +280,7 @@ dict_stats_thread_init()
 	mutex_create(LATCH_ID_RECALC_POOL, &recalc_pool_mutex);
 
 	dict_stats_recalc_pool_init();
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -276,6 +290,7 @@ void
 dict_stats_thread_deinit()
 /*======================*/
 {
+	DBUG_ENTER("dict_stats_thread_deinit");
 	ut_a(!srv_read_only_mode);
 	ut_ad(!srv_dict_stats_thread_active);
 
@@ -293,6 +308,7 @@ dict_stats_thread_deinit()
 	dict_stats_event = NULL;
 	dict_stats_shutdown_event = NULL;
 	dict_stats_start_shutdown = false;
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**
@@ -303,6 +319,7 @@ void
 dict_stats_process_entry_from_recalc_pool()
 /*=======================================*/
 {
+	DBUG_ENTER("dict_stats_process_entry_from_recalc_pool");
 	table_id_t	table_id;
 
 	ut_ad(!srv_read_only_mode);
@@ -310,7 +327,7 @@ dict_stats_process_entry_from_recalc_pool()
 	/* pop the first table from the auto recalc pool */
 	if (!dict_stats_recalc_pool_get(&table_id)) {
 		/* no tables for auto recalc */
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	dict_table_t*	table;
@@ -323,20 +340,20 @@ dict_stats_process_entry_from_recalc_pool()
 		/* table does not exist, must have been DROPped
 		after its id was enqueued */
 		mutex_exit(&dict_sys->mutex);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (fil_space_is_being_truncated(table->space)) {
 		dict_table_close(table, TRUE, FALSE);
 		mutex_exit(&dict_sys->mutex);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	/* Check whether table is corrupted */
 	if (table->corrupted) {
 		dict_table_close(table, TRUE, FALSE);
 		mutex_exit(&dict_sys->mutex);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	table->stats_bg_flag = BG_STAT_IN_PROGRESS;
@@ -370,6 +387,7 @@ dict_stats_process_entry_from_recalc_pool()
 	dict_table_close(table, TRUE, FALSE);
 
 	mutex_exit(&dict_sys->mutex);
+	DBUG_VOID_RETURN;
 }
 
 #ifdef UNIV_DEBUG
@@ -386,6 +404,7 @@ dict_stats_disabled_debug_update(
 	void*				var_ptr,
 	const void*			save)
 {
+	DBUG_ENTER("dict_stats_disabled_debug_update");
 	/* This method is protected by mutex, as every SET GLOBAL .. */
 	ut_ad(dict_stats_disabled_event != NULL);
 
@@ -399,6 +418,7 @@ dict_stats_disabled_debug_update(
 		os_event_set(dict_stats_event);
 		os_event_wait_low(dict_stats_disabled_event, sig_count);
 	}
+	DBUG_VOID_RETURN;
 }
 #endif /* UNIV_DEBUG */
 
@@ -460,7 +480,7 @@ DECLARE_THREAD(dict_stats_thread)(
 	my_thread_end();
 
 	/* We count the number of threads in os_thread_exit(). A created
-	thread should always use that to exit instead of return(). */
+	thread should always use that to exit instead of DBUG_RETURN(). */
 	os_thread_exit();
 
 	OS_THREAD_DUMMY_RETURN;
@@ -470,7 +490,9 @@ DECLARE_THREAD(dict_stats_thread)(
 void
 dict_stats_shutdown()
 {
+	DBUG_ENTER("dict_stats_shutdown");
 	dict_stats_start_shutdown = true;
 	os_event_set(dict_stats_event);
 	os_event_wait(dict_stats_shutdown_event);
+	DBUG_VOID_RETURN;
 }

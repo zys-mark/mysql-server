@@ -31,6 +31,7 @@ Code used for calculating and manipulating table statistics.
 Created Jan 06, 2010 Vasil Dimov
 *******************************************************/
 
+#include "my_dbug.h"
 #ifndef UNIV_HOTBACKUP
 
 #include "univ.i"
@@ -167,7 +168,8 @@ dict_stats_should_ignore_index(
 /*===========================*/
 	const dict_index_t*	index)	/*!< in: index */
 {
-	return((index->type & DICT_FTS)
+	DBUG_ENTER("dict_stats_should_ignore_index");
+	DBUG_RETURN((index->type & DICT_FTS)
 	       || dict_index_is_corrupted(index)
 	       || dict_index_is_spatial(index)
 	       || index->to_be_dropped
@@ -185,6 +187,7 @@ dict_stats_persistent_storage_check(
 	bool	caller_has_dict_sys_mutex)	/*!< in: true if the caller
 						owns dict_sys->mutex */
 {
+	DBUG_ENTER("dict_stats_persistent_storage_check");
 	/* definition for the table TABLE_STATS_NAME */
 	dict_col_meta_t	table_stats_columns[] = {
 		{"database_name", DATA_VARMYSQL,
@@ -271,11 +274,11 @@ dict_stats_persistent_storage_check(
 
 	if (ret != DB_SUCCESS) {
 		ib::error() << errstr;
-		return(false);
+		DBUG_RETURN(false);
 	}
 	/* else */
 
-	return(true);
+	DBUG_RETURN(true);
 }
 
 /** Executes a given SQL statement using the InnoDB internal SQL parser.
@@ -294,6 +297,7 @@ dict_stats_exec_sql(
 	const char*	sql,
 	trx_t*		trx)
 {
+	DBUG_ENTER("dict_stats_exec_sql");
 	dberr_t	err;
 	bool	trx_started = false;
 
@@ -302,7 +306,7 @@ dict_stats_exec_sql(
 
 	if (!dict_stats_persistent_storage_check(true)) {
 		pars_info_free(pinfo);
-		return(DB_STATS_DO_NOT_EXIST);
+		DBUG_RETURN(DB_STATS_DO_NOT_EXIST);
 	}
 
 	if (trx == NULL) {
@@ -325,7 +329,7 @@ dict_stats_exec_sql(
 		});
 
 	if (!trx_started && err == DB_SUCCESS) {
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	if (err == DB_SUCCESS) {
@@ -343,7 +347,7 @@ dict_stats_exec_sql(
 		trx_free_for_background(trx);
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /*********************************************************************//**
@@ -381,6 +385,7 @@ dict_stats_table_clone_create(
 /*==========================*/
 	const dict_table_t*	table)	/*!< in: table whose stats to copy */
 {
+	DBUG_ENTER("dict_stats_table_clone_create");
 	size_t		heap_size;
 	dict_index_t*	index;
 
@@ -498,7 +503,7 @@ dict_stats_table_clone_create(
 
 	ut_d(t->magic_n = DICT_TABLE_MAGIC_N);
 
-	return(t);
+	DBUG_RETURN(t);
 }
 
 /*********************************************************************//**
@@ -510,8 +515,10 @@ dict_stats_table_clone_free(
 /*========================*/
 	dict_table_t*	t)	/*!< in: dummy table object to free */
 {
+	DBUG_ENTER("dict_stats_table_clone_free");
 	dict_table_stats_latch_destroy(t);
 	mem_heap_free(t->heap);
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -525,6 +532,7 @@ dict_stats_empty_index(
 /*===================*/
 	dict_index_t*	index)	/*!< in/out: index */
 {
+	DBUG_ENTER("dict_stats_empty_index");
 	ut_ad(!(index->type & DICT_FTS));
 	ut_ad(!dict_index_is_ibuf(index));
 
@@ -538,6 +546,7 @@ dict_stats_empty_index(
 
 	index->stat_index_size = 1;
 	index->stat_n_leaf_pages = 1;
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -549,6 +558,7 @@ dict_stats_empty_table(
 /*===================*/
 	dict_table_t*	table)	/*!< in/out: table */
 {
+	DBUG_ENTER("dict_stats_empty_table");
 	/* Zero the stats members */
 
 	dict_table_stats_lock(table, RW_X_LATCH);
@@ -578,6 +588,7 @@ dict_stats_empty_table(
 	table->stat_initialized = TRUE;
 
 	dict_table_stats_unlock(table, RW_X_LATCH);
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -588,6 +599,7 @@ dict_stats_assert_initialized_index(
 /*================================*/
 	const dict_index_t*	index)	/*!< in: index */
 {
+	DBUG_ENTER("dict_stats_assert_initialized_index");
 	UNIV_MEM_ASSERT_RW_ABORT(
 		index->stat_n_diff_key_vals,
 		index->n_uniq * sizeof(index->stat_n_diff_key_vals[0]));
@@ -607,6 +619,7 @@ dict_stats_assert_initialized_index(
 	UNIV_MEM_ASSERT_RW_ABORT(
 		&index->stat_n_leaf_pages,
 		sizeof(index->stat_n_leaf_pages));
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -617,6 +630,7 @@ dict_stats_assert_initialized(
 /*==========================*/
 	const dict_table_t*	table)	/*!< in: table */
 {
+	DBUG_ENTER("dict_stats_assert_initialized");
 	ut_a(table->stat_initialized);
 
 	UNIV_MEM_ASSERT_RW_ABORT(&table->stats_last_recalc,
@@ -654,6 +668,7 @@ dict_stats_assert_initialized(
 			dict_stats_assert_initialized_index(index);
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 #define INDEX_EQ(i1, i2) \
@@ -673,6 +688,7 @@ dict_stats_copy(
 	dict_table_t*		dst,	/*!< in/out: destination table */
 	const dict_table_t*	src)	/*!< in: source table */
 {
+	DBUG_ENTER("dict_stats_copy");
 	dst->stats_last_recalc = src->stats_last_recalc;
 	dst->stat_n_rows = src->stat_n_rows;
 	dst->stat_clustered_index_size = src->stat_clustered_index_size;
@@ -744,6 +760,7 @@ dict_stats_copy(
 	}
 
 	dst->stat_initialized = TRUE;
+	DBUG_VOID_RETURN;
 }
 
 /** Duplicate the stats of a table and its indexes.
@@ -772,6 +789,7 @@ dict_table_t*
 dict_stats_snapshot_create(
 	dict_table_t*	table)
 {
+	DBUG_ENTER("dict_stats_snapshot_create");
 	mutex_enter(&dict_sys->mutex);
 
 	dict_table_stats_lock(table, RW_S_LATCH);
@@ -793,7 +811,7 @@ dict_stats_snapshot_create(
 
 	mutex_exit(&dict_sys->mutex);
 
-	return(t);
+	DBUG_RETURN(t);
 }
 
 /*********************************************************************//**
@@ -805,7 +823,9 @@ dict_stats_snapshot_free(
 /*=====================*/
 	dict_table_t*	t)	/*!< in: dummy table object to free */
 {
+	DBUG_ENTER("dict_stats_snapshot_free");
 	dict_stats_table_clone_free(t);
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -819,6 +839,7 @@ dict_stats_update_transient_for_index(
 /*==================================*/
 	dict_index_t*	index)	/*!< in/out: index */
 {
+	DBUG_ENTER("dict_stats_update_transient_for_index");
 	if (srv_force_recovery >= SRV_FORCE_NO_TRX_UNDO
 	    && (srv_force_recovery >= SRV_FORCE_NO_LOG_REDO
 		|| !dict_index_is_clust(index))) {
@@ -856,7 +877,7 @@ dict_stats_update_transient_for_index(
 		switch (size) {
 		case ULINT_UNDEFINED:
 			dict_stats_empty_index(index);
-			return;
+			DBUG_VOID_RETURN;
 		case 0:
 			/* The root node of the tree is a leaf */
 			size = 1;
@@ -869,6 +890,7 @@ dict_stats_update_transient_for_index(
 		have to empty the statistics of the to be dropped index */
 		btr_estimate_number_of_different_key_vals(index);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -882,6 +904,7 @@ dict_stats_update_transient(
 /*========================*/
 	dict_table_t*	table)	/*!< in/out: table */
 {
+	DBUG_ENTER("dict_stats_update_transient");
 	dict_index_t*	index;
 	ulint		sum_of_index_sizes	= 0;
 
@@ -896,7 +919,7 @@ dict_stats_update_transient(
 		/* Nothing to do. */
 		dict_stats_empty_table(table);
 		dict_table_analyze_index_unlock(table);
-		return;
+		DBUG_VOID_RETURN;
 	} else if (index == NULL) {
 		/* Table definition is corrupt */
 
@@ -904,7 +927,7 @@ dict_stats_update_transient(
 			<< " has no indexes. Cannot calculate statistics.";
 		dict_stats_empty_table(table);
 		dict_table_analyze_index_unlock(table);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	for (; index != NULL; index = dict_table_get_next_index(index)) {
@@ -947,6 +970,7 @@ dict_stats_update_transient(
 	dict_table_stats_unlock(table, RW_X_LATCH);
 
 	dict_table_analyze_index_unlock(table);
+	DBUG_VOID_RETURN;
 
 }
 
@@ -990,6 +1014,7 @@ dict_stats_analyze_index_level(
 					of distinct keys */
 	mtr_t*		mtr)		/*!< in/out: mini-transaction */
 {
+	DBUG_ENTER("dict_stats_analyze_index_level");
 	ulint		n_uniq;
 	mem_heap_t*	heap;
 	btr_pcur_t	pcur;
@@ -1283,6 +1308,7 @@ dict_stats_analyze_index_level(
 	btr_pcur_close(&pcur);
 	ut_free(prev_rec_buf);
 	mem_heap_free(heap);
+	DBUG_VOID_RETURN;
 }
 
 /* aux enum for controlling the behavior of dict_stats_scan_page() @{ */
@@ -1335,6 +1361,7 @@ dict_stats_scan_page(
 	ib_uint64_t*		n_diff,
 	ib_uint64_t*		n_external_pages)
 {
+	DBUG_ENTER("dict_stats_scan_page");
 	ulint*		offsets_rec		= offsets1;
 	ulint*		offsets_next_rec	= offsets2;
 	const rec_t*	rec;
@@ -1363,7 +1390,7 @@ dict_stats_scan_page(
 		/* the page is empty or contains only delete-marked records */
 		*n_diff = 0;
 		*out_rec = NULL;
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	offsets_rec = rec_get_offsets(rec, index, offsets_rec,
@@ -1433,7 +1460,7 @@ dict_stats_scan_page(
 	/* offsets1,offsets2 should have been big enough */
 	ut_a(heap == NULL);
 	*out_rec = rec;
-	return(offsets_rec);
+	DBUG_RETURN(offsets_rec);
 }
 
 /** Dive below the current position of a cursor and calculate the number of
@@ -1454,6 +1481,7 @@ dict_stats_analyze_index_below_cur(
 	ib_uint64_t*		n_diff,
 	ib_uint64_t*		n_external_pages)
 {
+	DBUG_ENTER("dict_stats_analyze_index_below_cur");
 	dict_index_t*	index;
 	buf_block_t*	block;
 	const page_t*	page;
@@ -1541,7 +1569,7 @@ dict_stats_analyze_index_below_cur(
 			because we do not dive to the leaf level, assume no
 			external pages (*n_external_pages was assigned to 0
 			above). */
-			return;
+			DBUG_VOID_RETURN;
 		}
 		/* else */
 
@@ -1579,6 +1607,7 @@ dict_stats_analyze_index_below_cur(
 
 	mtr_commit(&mtr);
 	mem_heap_free(heap);
+	DBUG_VOID_RETURN;
 }
 
 /** Input data that is used to calculate dict_index_t::stat_n_diff_key_vals[]
@@ -1644,6 +1673,7 @@ dict_stats_analyze_index_for_n_prefix(
 	n_diff_data_t*		n_diff_data,
 	mtr_t*			mtr)
 {
+	DBUG_ENTER("dict_stats_analyze_index_for_n_prefix");
 	btr_pcur_t	pcur;
 	const page_t*	page;
 	ib_uint64_t	rec_idx;
@@ -1813,6 +1843,7 @@ dict_stats_analyze_index_for_n_prefix(
 	}
 
 	btr_pcur_close(&pcur);
+	DBUG_VOID_RETURN;
 }
 
 /** Set dict_index_t::stat_n_diff_key_vals[] and stat_n_sample_sizes[].
@@ -1824,6 +1855,7 @@ dict_stats_index_set_n_diff(
 	const n_diff_data_t*	n_diff_data,
 	dict_index_t*		index)
 {
+	DBUG_ENTER("dict_stats_index_set_n_diff");
 	for (ulint n_prefix = dict_index_get_n_unique(index);
 	     n_prefix >= 1;
 	     n_prefix--) {
@@ -1887,6 +1919,7 @@ dict_stats_index_set_n_diff(
 			     data->n_diff_all_analyzed_pages,
 			     data->n_leaf_pages_to_analyze);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /*********************************************************************//**
@@ -2208,6 +2241,7 @@ dict_stats_update_persistent(
 /*=========================*/
 	dict_table_t*	table)		/*!< in/out: table */
 {
+	DBUG_ENTER("dict_stats_update_persistent");
 	dict_index_t*	index;
 
 	DEBUG_PRINTF("%s(table=%s)\n", __func__, table->name);
@@ -2228,7 +2262,7 @@ dict_stats_update_persistent(
 		dict_stats_empty_table(table);
 		dict_table_analyze_index_unlock(table);
 
-		return(DB_CORRUPTION);
+		DBUG_RETURN(DB_CORRUPTION);
 	}
 
 	ut_ad(!dict_index_is_ibuf(index));
@@ -2289,7 +2323,7 @@ dict_stats_update_persistent(
 
 	dict_table_analyze_index_unlock(table);
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 #include "mysql_com.h"
@@ -2316,6 +2350,7 @@ dict_stats_save_index_stat(
 	const char*	stat_description,
 	trx_t*		trx)
 {
+	DBUG_ENTER("dict_stats_save_index_stat");
 	dberr_t		ret;
 	pars_info_t*	pinfo;
 	char		db_utf8[MAX_DB_UTF8_LEN];
@@ -2382,7 +2417,7 @@ dict_stats_save_index_stat(
 			<< ut_strerr(ret);
 	}
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /** Save the table's statistics into the persistent statistics storage.
@@ -2397,6 +2432,7 @@ dict_stats_save(
 	dict_table_t*		table_orig,
 	const index_id_t*	only_for_index)
 {
+	DBUG_ENTER("dict_stats_save");
 	pars_info_t*	pinfo;
 	lint		now;
 	dberr_t		ret;
@@ -2459,7 +2495,7 @@ dict_stats_save(
 
 		dict_stats_snapshot_free(table);
 
-		return(ret);
+		DBUG_RETURN(ret);
 	}
 
 	trx_t*	trx = trx_allocate_for_background();
@@ -2573,7 +2609,7 @@ end:
 
 	dict_stats_snapshot_free(table);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*********************************************************************//**
@@ -2589,6 +2625,7 @@ dict_stats_fetch_table_stats_step(
 	void*	node_void,	/*!< in: select node */
 	void*	table_void)	/*!< out: table */
 {
+	DBUG_ENTER("dict_stats_fetch_table_stats_step");
 	sel_node_t*	node = (sel_node_t*) node_void;
 	dict_table_t*	table = (dict_table_t*) table_void;
 	que_common_t*	cnode;
@@ -2655,7 +2692,7 @@ dict_stats_fetch_table_stats_step(
 	ut_a(i == 3 /*n_rows,clustered_index_size,sum_of_other_index_sizes*/);
 
 	/* XXX this is not used but returning non-NULL is necessary */
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /** Aux struct used to pass a table and a boolean to
@@ -2691,6 +2728,7 @@ dict_stats_fetch_index_stats_step(
 	void*	arg_void)	/*!< out: table + a flag that tells if we
 				modified anything */
 {
+	DBUG_ENTER("dict_stats_fetch_index_stats_step");
 	sel_node_t*	node = (sel_node_t*) node_void;
 	index_fetch_t*	arg = (index_fetch_t*) arg_void;
 	dict_table_t*	table = arg->table;
@@ -2745,7 +2783,7 @@ dict_stats_fetch_index_stats_step(
 			column */
 			if (index == NULL) {
 
-				return(TRUE);
+				DBUG_RETURN(TRUE);
 			}
 
 			break;
@@ -2858,7 +2896,7 @@ dict_stats_fetch_index_stats_step(
 				<< "' AND stat_name = '";
 			out.write(stat_name, stat_name_len);
 			out << "'; because stat_name is malformed";
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 		/* else */
 
@@ -2888,7 +2926,7 @@ dict_stats_fetch_index_stats_step(
 			out << "'; because stat_name is out of range, the index"
 				" has " << n_uniq << " unique columns";
 
-			return(TRUE);
+			DBUG_RETURN(TRUE);
 		}
 		/* else */
 
@@ -2911,7 +2949,7 @@ dict_stats_fetch_index_stats_step(
 	}
 
 	/* XXX this is not used but returning non-NULL is necessary */
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /*********************************************************************//**
@@ -2923,6 +2961,7 @@ dict_stats_fetch_from_ps(
 /*=====================*/
 	dict_table_t*	table)	/*!< in/out: table */
 {
+	DBUG_ENTER("dict_stats_fetch_from_ps");
 	index_fetch_t	index_fetch_arg;
 	trx_t*		trx;
 	pars_info_t*	pinfo;
@@ -3035,10 +3074,10 @@ dict_stats_fetch_from_ps(
 	trx_free_for_background(trx);
 
 	if (!index_fetch_arg.stats_were_modified) {
-		return(DB_STATS_DO_NOT_EXIST);
+		DBUG_RETURN(DB_STATS_DO_NOT_EXIST);
 	}
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*********************************************************************//**
@@ -3099,6 +3138,7 @@ dict_stats_update(
 					the persistent statistics
 					storage */
 {
+	DBUG_ENTER("dict_stats_update");
 	ut_ad(!mutex_own(&dict_sys->mutex));
 
 	if (table->ibd_file_missing) {
@@ -3109,13 +3149,13 @@ dict_stats_update(
 			<< TROUBLESHOOTING_MSG;
 
 		dict_stats_empty_table(table);
-		return(DB_TABLESPACE_DELETED);
+		DBUG_RETURN(DB_TABLESPACE_DELETED);
 	} else if (srv_force_recovery >= SRV_FORCE_NO_IBUF_MERGE) {
 		/* If we have set a high innodb_force_recovery level, do
 		not calculate statistics, as a badly corrupted index can
 		cause a crash in it. */
 		dict_stats_empty_table(table);
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	switch (stats_upd_option) {
@@ -3151,12 +3191,12 @@ dict_stats_update(
 			err = dict_stats_update_persistent(table);
 
 			if (err != DB_SUCCESS) {
-				return(err);
+				DBUG_RETURN(err);
 			}
 
 			err = dict_stats_save(table, NULL);
 
-			return(err);
+			DBUG_RETURN(err);
 		}
 
 		/* Fall back to transient stats since the persistent
@@ -3186,13 +3226,13 @@ dict_stats_update(
 
 			if (dict_stats_persistent_storage_check(false)) {
 
-				return(dict_stats_save(table, NULL));
+				DBUG_RETURN(dict_stats_save(table, NULL));
 			}
 
-			return(DB_STATS_DO_NOT_EXIST);
+			DBUG_RETURN(DB_STATS_DO_NOT_EXIST);
 		}
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 
 	case DICT_STATS_FETCH_ONLY_IF_NOT_IN_MEMORY:
 
@@ -3200,7 +3240,7 @@ dict_stats_update(
 		storage or use the old method */
 
 		if (table->stat_initialized) {
-			return(DB_SUCCESS);
+			DBUG_RETURN(DB_SUCCESS);
 		}
 
 		/* InnoDB internal tables (e.g. SYS_TABLES) cannot have
@@ -3247,7 +3287,7 @@ dict_stats_update(
 
 			dict_stats_table_clone_free(t);
 
-			return(DB_SUCCESS);
+			DBUG_RETURN(DB_SUCCESS);
 		case DB_STATS_DO_NOT_EXIST:
 
 			dict_stats_table_clone_free(t);
@@ -3257,7 +3297,7 @@ dict_stats_update(
 			}
 
 			if (dict_stats_auto_recalc_is_enabled(table)) {
-				return(dict_stats_update(
+				DBUG_RETURN(dict_stats_update(
 						table,
 						DICT_STATS_RECALC_PERSISTENT));
 			}
@@ -3297,7 +3337,7 @@ transient:
 
 	dict_stats_update_transient(table);
 
-	return(DB_SUCCESS);
+	DBUG_RETURN(DB_SUCCESS);
 }
 
 /*********************************************************************//**
@@ -3320,6 +3360,7 @@ dict_stats_drop_index(
 				is returned */
 	ulint		errstr_sz)/*!< in: size of the errstr buffer */
 {
+	DBUG_ENTER("dict_stats_drop_index");
 	char		db_utf8[MAX_DB_UTF8_LEN];
 	char		table_utf8[MAX_TABLE_UTF8_LEN];
 	pars_info_t*	pinfo;
@@ -3331,7 +3372,7 @@ dict_stats_drop_index(
 	e.g. if we are dropping an index from SYS_TABLES */
 	if (strchr(db_and_table, '/') == NULL) {
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	dict_fs2utf8(db_and_table, db_utf8, sizeof(db_utf8),
@@ -3388,7 +3429,7 @@ dict_stats_drop_index(
 		fprintf(stderr, " InnoDB: %s\n", errstr);
 	}
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*********************************************************************//**
@@ -3404,6 +3445,7 @@ dict_stats_delete_from_table_stats(
 	const char*	database_name,	/*!< in: database name, e.g. 'db' */
 	const char*	table_name)	/*!< in: table name, e.g. 'table' */
 {
+	DBUG_ENTER("dict_stats_delete_from_table_stats");
 	pars_info_t*	pinfo;
 	dberr_t		ret;
 
@@ -3424,7 +3466,7 @@ dict_stats_delete_from_table_stats(
 		"table_name = :table_name;\n"
 		"END;\n", NULL);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*********************************************************************//**
@@ -3440,6 +3482,7 @@ dict_stats_delete_from_index_stats(
 	const char*	database_name,	/*!< in: database name, e.g. 'db' */
 	const char*	table_name)	/*!< in: table name, e.g. 'table' */
 {
+	DBUG_ENTER("dict_stats_delete_from_index_stats");
 	pars_info_t*	pinfo;
 	dberr_t		ret;
 
@@ -3460,7 +3503,7 @@ dict_stats_delete_from_index_stats(
 		"table_name = :table_name;\n"
 		"END;\n", NULL);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*********************************************************************//**
@@ -3476,6 +3519,7 @@ dict_stats_drop_table(
 					if != DB_SUCCESS is returned */
 	ulint		errstr_sz)	/*!< in: size of errstr buffer */
 {
+	DBUG_ENTER("dict_stats_drop_table");
 	char		db_utf8[MAX_DB_UTF8_LEN];
 	char		table_utf8[MAX_TABLE_UTF8_LEN];
 	dberr_t		ret;
@@ -3487,14 +3531,14 @@ dict_stats_drop_table(
 	e.g. if we are dropping SYS_TABLES */
 	if (strchr(db_and_table, '/') == NULL) {
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	/* skip innodb_table_stats and innodb_index_stats themselves */
 	if (strcmp(db_and_table, TABLE_STATS_NAME) == 0
 	    || strcmp(db_and_table, INDEX_STATS_NAME) == 0) {
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	dict_fs2utf8(db_and_table, db_utf8, sizeof(db_utf8),
@@ -3534,7 +3578,7 @@ dict_stats_drop_table(
 			    db_utf8, table_utf8);
 	}
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*********************************************************************//**
@@ -3553,6 +3597,7 @@ dict_stats_rename_table_in_table_stats(
 	const char*	new_dbname_utf8,/*!< in: database name, e.g. 'newdb' */
 	const char*	new_tablename_utf8)/*!< in: table name, e.g. 'newtable' */
 {
+	DBUG_ENTER("dict_stats_rename_table_in_table_stats");
 	pars_info_t*	pinfo;
 	dberr_t		ret;
 
@@ -3578,7 +3623,7 @@ dict_stats_rename_table_in_table_stats(
 		"table_name = :old_tablename_utf8;\n"
 		"END;\n", NULL);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*********************************************************************//**
@@ -3597,6 +3642,7 @@ dict_stats_rename_table_in_index_stats(
 	const char*	new_dbname_utf8,/*!< in: database name, e.g. 'newdb' */
 	const char*	new_tablename_utf8)/*!< in: table name, e.g. 'newtable' */
 {
+	DBUG_ENTER("dict_stats_rename_table_in_index_stats");
 	pars_info_t*	pinfo;
 	dberr_t		ret;
 
@@ -3622,7 +3668,7 @@ dict_stats_rename_table_in_index_stats(
 		"table_name = :old_tablename_utf8;\n"
 		"END;\n", NULL);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*********************************************************************//**
@@ -3641,6 +3687,7 @@ dict_stats_rename_table(
 					is returned */
 	size_t		errstr_sz)	/*!< in: errstr size */
 {
+	DBUG_ENTER("dict_stats_rename_table");
 	char		old_db_utf8[MAX_DB_UTF8_LEN];
 	char		new_db_utf8[MAX_DB_UTF8_LEN];
 	char		old_table_utf8[MAX_TABLE_UTF8_LEN];
@@ -3657,7 +3704,7 @@ dict_stats_rename_table(
 	    || strcmp(new_name, TABLE_STATS_NAME) == 0
 	    || strcmp(new_name, INDEX_STATS_NAME) == 0) {
 
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	dict_fs2utf8(old_name, old_db_utf8, sizeof(old_db_utf8),
@@ -3729,7 +3776,7 @@ dict_stats_rename_table(
 			    old_db_utf8, old_table_utf8);
 		mutex_exit(&dict_sys->mutex);
 		rw_lock_x_unlock(dict_operation_lock);
-		return(ret);
+		DBUG_RETURN(ret);
 	}
 	/* else */
 
@@ -3789,7 +3836,7 @@ dict_stats_rename_table(
 			    old_db_utf8, old_table_utf8);
 	}
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /*********************************************************************//**
@@ -3805,13 +3852,14 @@ dict_stats_rename_index(
 	const char*		old_index_name,	/*!< in: old index name */
 	const char*		new_index_name)	/*!< in: new index name */
 {
+	DBUG_ENTER("dict_stats_rename_index");
 	rw_lock_x_lock(dict_operation_lock);
 	mutex_enter(&dict_sys->mutex);
 
 	if (!dict_stats_persistent_storage_check(true)) {
 		mutex_exit(&dict_sys->mutex);
 		rw_lock_x_unlock(dict_operation_lock);
-		return(DB_STATS_DO_NOT_EXIST);
+		DBUG_RETURN(DB_STATS_DO_NOT_EXIST);
 	}
 
 	char	dbname_utf8[MAX_DB_UTF8_LEN];
@@ -3846,7 +3894,7 @@ dict_stats_rename_index(
 	mutex_exit(&dict_sys->mutex);
 	rw_lock_x_unlock(dict_operation_lock);
 
-	return(ret);
+	DBUG_RETURN(ret);
 }
 
 /* tests @{ */

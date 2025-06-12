@@ -34,6 +34,7 @@ Created 4/18/1996 Heikki Tuuri
 #include "ha_prototypes.h"
 
 #include "dict0boot.h"
+#include "my_dbug.h"
 
 #ifdef UNIV_NONINL
 #include "dict0boot.ic"
@@ -189,6 +190,7 @@ dict_hdr_create(
 /*============*/
 	mtr_t*	mtr)	/*!< in: mtr */
 {
+	DBUG_ENTER("dict_hdr_create");
 	buf_block_t*	block;
 	dict_hdr_t*	dict_header;
 	ulint		root_page_no;
@@ -231,7 +233,7 @@ dict_hdr_create(
 				  dict_ind_redundant, NULL, mtr);
 	if (root_page_no == FIL_NULL) {
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	mlog_write_ulint(dict_header + DICT_HDR_TABLES, root_page_no,
@@ -242,7 +244,7 @@ dict_hdr_create(
 				  dict_ind_redundant, NULL, mtr);
 	if (root_page_no == FIL_NULL) {
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	mlog_write_ulint(dict_header + DICT_HDR_TABLE_IDS, root_page_no,
@@ -253,7 +255,7 @@ dict_hdr_create(
 				  dict_ind_redundant, NULL, mtr);
 	if (root_page_no == FIL_NULL) {
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	mlog_write_ulint(dict_header + DICT_HDR_COLUMNS, root_page_no,
@@ -264,7 +266,7 @@ dict_hdr_create(
 				  dict_ind_redundant, NULL, mtr);
 	if (root_page_no == FIL_NULL) {
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	mlog_write_ulint(dict_header + DICT_HDR_INDEXES, root_page_no,
@@ -275,14 +277,14 @@ dict_hdr_create(
 				  dict_ind_redundant, NULL, mtr);
 	if (root_page_no == FIL_NULL) {
 
-		return(FALSE);
+		DBUG_RETURN(FALSE);
 	}
 
 	mlog_write_ulint(dict_header + DICT_HDR_FIELDS, root_page_no,
 			 MLOG_4BYTES, mtr);
 	/*--------------------------*/
 
-	return(TRUE);
+	DBUG_RETURN(TRUE);
 }
 
 /*****************************************************************//**
@@ -537,7 +539,9 @@ void
 dict_insert_initial_data(void)
 /*==========================*/
 {
+	DBUG_ENTER("dict_insert_initial_data");
 	/* Does nothing yet */
+	DBUG_VOID_RETURN;
 }
 
 /*****************************************************************//**

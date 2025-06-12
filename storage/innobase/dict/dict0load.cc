@@ -35,6 +35,7 @@ Created 4/24/1996 Heikki Tuuri
 #include "ha_prototypes.h"
 
 #include "dict0load.h"
+#include "my_dbug.h"
 #ifdef UNIV_NONINL
 #include "dict0load.ic"
 #endif
@@ -129,11 +130,12 @@ name_of_col_is(
 	ulint			i,	/*!< in: index field offset */
 	const char*		name)	/*!< in: name to compare to */
 {
+	DBUG_ENTER("name_of_col_is");
 	ulint	tmp = dict_col_get_no(dict_field_get_col(
 					      dict_index_get_nth_field(
 						      index, i)));
 
-	return(strcmp(name, dict_table_get_col_name(table, tmp)) == 0);
+	DBUG_RETURN(strcmp(name, dict_table_get_col_name(table, tmp)) == 0);
 }
 #endif /* UNIV_DEBUG */
 
@@ -146,6 +148,7 @@ dict_get_first_table_name_in_db(
 /*============================*/
 	const char*	name)	/*!< in: database name which ends in '/' */
 {
+	DBUG_ENTER("dict_get_first_table_name_in_db");
 	dict_table_t*	sys_tables;
 	btr_pcur_t	pcur;
 	dict_index_t*	sys_index;
@@ -185,7 +188,7 @@ loop:
 		mtr_commit(&mtr);
 		mem_heap_free(heap);
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	field = rec_get_nth_field_old(
@@ -199,7 +202,7 @@ loop:
 		mtr_commit(&mtr);
 		mem_heap_free(heap);
 
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	if (!rec_get_deleted_flag(rec, 0)) {
@@ -212,7 +215,7 @@ loop:
 		mtr_commit(&mtr);
 		mem_heap_free(heap);
 
-		return(table_name);
+		DBUG_RETURN(table_name);
 	}
 
 	btr_pcur_move_to_next_user_rec(&pcur, &mtr);
@@ -231,6 +234,7 @@ dict_getnext_system_low(
 					record*/
 	mtr_t*		mtr)		/*!< in: the mini-transaction */
 {
+	DBUG_ENTER("dict_getnext_system_low");
 	rec_t*	rec = NULL;
 
 	while (!rec || rec_get_deleted_flag(rec, 0)) {
@@ -242,14 +246,14 @@ dict_getnext_system_low(
 			/* end of index */
 			btr_pcur_close(pcur);
 
-			return(NULL);
+			DBUG_RETURN(NULL);
 		}
 	}
 
 	/* Get a record, let's save the position */
 	btr_pcur_store_position(pcur, mtr);
 
-	return(rec);
+	DBUG_RETURN(rec);
 }
 
 /********************************************************************//**
@@ -263,6 +267,7 @@ dict_startscan_system(
 	mtr_t*		mtr,		/*!< in: the mini-transaction */
 	dict_system_id_t system_id)	/*!< in: which system table to open */
 {
+	DBUG_ENTER("dict_startscan_system");
 	dict_table_t*	system_table;
 	dict_index_t*	clust_index;
 	const rec_t*	rec;
@@ -278,7 +283,7 @@ dict_startscan_system(
 
 	rec = dict_getnext_system_low(pcur, mtr);
 
-	return(rec);
+	DBUG_RETURN(rec);
 }
 
 /********************************************************************//**
@@ -291,6 +296,7 @@ dict_getnext_system(
 					to the record */
 	mtr_t*		mtr)		/*!< in: the mini-transaction */
 {
+	DBUG_ENTER("dict_getnext_system");
 	const rec_t*	rec;
 
 	/* Restore the position */
@@ -299,7 +305,7 @@ dict_getnext_system(
 	/* Get the next record */
 	rec = dict_getnext_system_low(pcur, mtr);
 
-	return(rec);
+	DBUG_RETURN(rec);
 }
 
 /********************************************************************//**
@@ -320,6 +326,7 @@ dict_process_sys_tables_rec_and_mtr_commit(
 	mtr_t*		mtr)		/*!< in/out: mini-transaction,
 					will be committed */
 {
+	DBUG_ENTER("dict_process_sys_tables_rec_and_mtr_commit");
 	ulint		len;
 	const char*	field;
 	const char*	err_msg = NULL;
@@ -353,10 +360,10 @@ dict_process_sys_tables_rec_and_mtr_commit(
 	}
 
 	if (err_msg) {
-		return(err_msg);
+		DBUG_RETURN(err_msg);
 	}
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /********************************************************************//**
@@ -372,6 +379,7 @@ dict_process_sys_indexes_rec(
 	dict_index_t*	index,		/*!< out: index to be filled */
 	table_id_t*	table_id)	/*!< out: index table id */
 {
+	DBUG_ENTER("dict_process_sys_indexes_rec");
 	const char*	err_msg;
 	byte*		buf;
 
@@ -383,7 +391,7 @@ dict_process_sys_indexes_rec(
 
 	*table_id = mach_read_from_8(buf);
 
-	return(err_msg);
+	DBUG_RETURN(err_msg);
 }
 
 /********************************************************************//**
@@ -401,13 +409,14 @@ dict_process_sys_columns_rec(
 	ulint*		nth_v_col)	/*!< out: if virtual col, this is
 					record's sequence number */
 {
+	DBUG_ENTER("dict_process_sys_columns_rec");
 	const char*	err_msg;
 
 	/* Parse the record, and get "dict_col_t" struct filled */
 	err_msg = dict_load_column_low(NULL, heap, column,
 				       table_id, col_name, rec, nth_v_col);
 
-	return(err_msg);
+	DBUG_RETURN(err_msg);
 }
 
 /** This function parses a SYS_VIRTUAL record and extracts virtual column
@@ -426,13 +435,14 @@ dict_process_sys_virtual_rec(
 	ulint*		pos,
 	ulint*		base_pos)
 {
+	DBUG_ENTER("dict_process_sys_virtual_rec");
 	const char*	err_msg;
 
 	/* Parse the record, and get "dict_col_t" struct filled */
 	err_msg = dict_load_virtual_low(NULL, heap, NULL, table_id,
 					pos, base_pos, rec);
 
-	return(err_msg);
+	DBUG_RETURN(err_msg);
 }
 /********************************************************************//**
 This function parses a SYS_FIELDS record and populates a dict_field_t
@@ -449,6 +459,7 @@ dict_process_sys_fields_rec(
 	index_id_t*	index_id,	/*!< out: current index id */
 	index_id_t	last_id)	/*!< in: previous index id */
 {
+	DBUG_ENTER("dict_process_sys_fields_rec");
 	byte*		buf;
 	byte*		last_index_id;
 	const char*	err_msg;
@@ -463,7 +474,7 @@ dict_process_sys_fields_rec(
 
 	*index_id = mach_read_from_8(buf);
 
-	return(err_msg);
+	DBUG_RETURN(err_msg);
 
 }
 
@@ -480,23 +491,24 @@ dict_process_sys_foreign_rec(
 	dict_foreign_t*	foreign)	/*!< out: dict_foreign_t struct
 					to be filled */
 {
+	DBUG_ENTER("dict_process_sys_foreign_rec");
 	ulint		len;
 	const byte*	field;
 	ulint		n_fields_and_type;
 
 	if (rec_get_deleted_flag(rec, 0)) {
-		return("delete-marked record in SYS_FOREIGN");
+		DBUG_RETURN("delete-marked record in SYS_FOREIGN");
 	}
 
 	if (rec_get_n_fields_old(rec) != DICT_NUM_FIELDS__SYS_FOREIGN) {
-		return("wrong number of columns in SYS_FOREIGN record");
+		DBUG_RETURN("wrong number of columns in SYS_FOREIGN record");
 	}
 
 	field = rec_get_nth_field_old(
 		rec, DICT_FLD__SYS_FOREIGN__ID, &len);
 	if (len == 0 || len == UNIV_SQL_NULL) {
 err_len:
-		return("incorrect column length in SYS_FOREIGN");
+		DBUG_RETURN("incorrect column length in SYS_FOREIGN");
 	}
 
 	/* This recieves a dict_foreign_t* that points to a stack variable.
@@ -545,7 +557,7 @@ err_len:
 	foreign->type = (unsigned int) (n_fields_and_type >> 24);
 	foreign->n_fields = (unsigned int) (n_fields_and_type & 0x3FFUL);
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /********************************************************************//**
@@ -563,22 +575,23 @@ dict_process_sys_foreign_col_rec(
 					in referenced table */
 	ulint*		pos)		/*!< out: column position */
 {
+	DBUG_ENTER("dict_process_sys_foreign_col_rec");
 	ulint		len;
 	const byte*	field;
 
 	if (rec_get_deleted_flag(rec, 0)) {
-		return("delete-marked record in SYS_FOREIGN_COLS");
+		DBUG_RETURN("delete-marked record in SYS_FOREIGN_COLS");
 	}
 
 	if (rec_get_n_fields_old(rec) != DICT_NUM_FIELDS__SYS_FOREIGN_COLS) {
-		return("wrong number of columns in SYS_FOREIGN_COLS record");
+		DBUG_RETURN("wrong number of columns in SYS_FOREIGN_COLS record");
 	}
 
 	field = rec_get_nth_field_old(
 		rec, DICT_FLD__SYS_FOREIGN_COLS__ID, &len);
 	if (len == 0 || len == UNIV_SQL_NULL) {
 err_len:
-		return("incorrect column length in SYS_FOREIGN_COLS");
+		DBUG_RETURN("incorrect column length in SYS_FOREIGN_COLS");
 	}
 	*name = mem_heap_strdupl(heap, (char*) field, len);
 
@@ -614,7 +627,7 @@ err_len:
 	}
 	*ref_col_name = mem_heap_strdupl(heap, (char*) field, len);
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /********************************************************************//**
@@ -630,6 +643,7 @@ dict_process_sys_tablespaces(
 	const char**	name,		/*!< out: tablespace name */
 	ulint*		flags)		/*!< out: tablespace flags */
 {
+	DBUG_ENTER("dict_process_sys_tablespaces");
 	ulint		len;
 	const byte*	field;
 
@@ -639,18 +653,18 @@ dict_process_sys_tablespaces(
 	*flags = ULINT_UNDEFINED;
 
 	if (rec_get_deleted_flag(rec, 0)) {
-		return("delete-marked record in SYS_TABLESPACES");
+		DBUG_RETURN("delete-marked record in SYS_TABLESPACES");
 	}
 
 	if (rec_get_n_fields_old(rec) != DICT_NUM_FIELDS__SYS_TABLESPACES) {
-		return("wrong number of columns in SYS_TABLESPACES record");
+		DBUG_RETURN("wrong number of columns in SYS_TABLESPACES record");
 	}
 
 	field = rec_get_nth_field_old(
 		rec, DICT_FLD__SYS_TABLESPACES__SPACE, &len);
 	if (len != DICT_FLD_LEN_SPACE) {
 err_len:
-		return("incorrect column length in SYS_TABLESPACES");
+		DBUG_RETURN("incorrect column length in SYS_TABLESPACES");
 	}
 	*space = mach_read_from_4(field);
 
@@ -680,7 +694,7 @@ err_len:
 	}
 	*flags = mach_read_from_4(field);
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /********************************************************************//**
@@ -695,22 +709,23 @@ dict_process_sys_datafiles(
 	ulint*		space,		/*!< out: space id */
 	const char**	path)		/*!< out: datafile paths */
 {
+	DBUG_ENTER("dict_process_sys_datafiles");
 	ulint		len;
 	const byte*	field;
 
 	if (rec_get_deleted_flag(rec, 0)) {
-		return("delete-marked record in SYS_DATAFILES");
+		DBUG_RETURN("delete-marked record in SYS_DATAFILES");
 	}
 
 	if (rec_get_n_fields_old(rec) != DICT_NUM_FIELDS__SYS_DATAFILES) {
-		return("wrong number of columns in SYS_DATAFILES record");
+		DBUG_RETURN("wrong number of columns in SYS_DATAFILES record");
 	}
 
 	field = rec_get_nth_field_old(
 		rec, DICT_FLD__SYS_DATAFILES__SPACE, &len);
 	if (len != DICT_FLD_LEN_SPACE) {
 err_len:
-		return("incorrect column length in SYS_DATAFILES");
+		DBUG_RETURN("incorrect column length in SYS_DATAFILES");
 	}
 	*space = mach_read_from_4(field);
 
@@ -733,7 +748,7 @@ err_len:
 	}
 	*path = mem_heap_strdupl(heap, (char*) field, len);
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /** Get the first filepath from SYS_DATAFILES for a given space_id.
@@ -744,6 +759,7 @@ char*
 dict_get_first_path(
 	ulint	space_id)
 {
+	DBUG_ENTER("dict_get_first_path");
 	mtr_t		mtr;
 	dict_table_t*	sys_datafiles;
 	dict_index_t*	sys_index;
@@ -815,7 +831,7 @@ dict_get_first_path(
 	mtr_commit(&mtr);
 	mem_heap_free(heap);
 
-	return(filepath);
+	DBUG_RETURN(filepath);
 }
 
 /** Gets the space name from SYS_TABLESPACES for a given space ID.
@@ -829,6 +845,7 @@ dict_space_get_name(
 	ulint		space_id,
 	mem_heap_t*	callers_heap)
 {
+	DBUG_ENTER("dict_space_get_name");
 	mtr_t		mtr;
 	dict_table_t*	sys_tablespaces;
 	dict_index_t*	sys_index;
@@ -847,7 +864,7 @@ dict_space_get_name(
 	sys_tablespaces = dict_table_get_low("SYS_TABLESPACES");
 	if (sys_tablespaces == NULL) {
 		ut_a(!srv_sys_tablespaces_open);
-		return(NULL);
+		DBUG_RETURN(NULL);
 	}
 
 	sys_index = UT_LIST_GET_FIRST(sys_tablespaces->indexes);
@@ -911,7 +928,7 @@ dict_space_get_name(
 	mtr_commit(&mtr);
 	mem_heap_free(heap);
 
-	return(space_name);
+	DBUG_RETURN(space_name);
 }
 
 /** Update the record for space_id in SYS_TABLESPACES to this filepath.
@@ -923,9 +940,10 @@ dict_update_filepath(
 	ulint		space_id,
 	const char*	filepath)
 {
+	DBUG_ENTER("dict_update_filepath");
 	if (!srv_sys_tablespaces_open) {
 		/* Startup procedure is not yet ready for updates. */
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	dberr_t		err = DB_SUCCESS;
@@ -969,7 +987,7 @@ dict_update_filepath(
 			<< ut_strerr(err) << ".";
 	}
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /** Replace records in SYS_TABLESPACES and SYS_DATAFILES associated with
@@ -986,18 +1004,19 @@ dict_replace_tablespace_and_filepath(
 	const char*	filepath,
 	ulint		fsp_flags)
 {
+	DBUG_ENTER("dict_replace_tablespace_and_filepath");
 	if (!srv_sys_tablespaces_open) {
 		/* Startup procedure is not yet ready for updates.
 		Return success since this will likely get updated
 		later. */
-		return(DB_SUCCESS);
+		DBUG_RETURN(DB_SUCCESS);
 	}
 
 	dberr_t		err = DB_SUCCESS;
 	trx_t*		trx;
 
 	DBUG_EXECUTE_IF("innodb_fail_to_update_tablespace_dict",
-			return(DB_INTERRUPTED););
+			DBUG_RETURN(DB_INTERRUPTED););
 
 	ut_ad(rw_lock_own(dict_operation_lock, RW_LOCK_X));
 	ut_ad(mutex_own(&dict_sys->mutex));
@@ -1018,7 +1037,7 @@ dict_replace_tablespace_and_filepath(
 	trx->dict_operation_lock_mode = 0;
 	trx_free_for_background(trx);
 
-	return(err);
+	DBUG_RETURN(err);
 }
 
 /** Check the validity of a SYS_TABLES record
@@ -1031,24 +1050,25 @@ const char*
 dict_sys_tables_rec_check(
 	const rec_t*	rec)
 {
+	DBUG_ENTER("dict_sys_tables_rec_check");
 	const byte*	field;
 	ulint		len;
 
 	ut_ad(mutex_own(&dict_sys->mutex));
 
 	if (rec_get_deleted_flag(rec, 0)) {
-		return("delete-marked record in SYS_TABLES");
+		DBUG_RETURN("delete-marked record in SYS_TABLES");
 	}
 
 	if (rec_get_n_fields_old(rec) != DICT_NUM_FIELDS__SYS_TABLES) {
-		return("wrong number of columns in SYS_TABLES record");
+		DBUG_RETURN("wrong number of columns in SYS_TABLES record");
 	}
 
 	rec_get_nth_field_offs_old(
 		rec, DICT_FLD__SYS_TABLES__NAME, &len);
 	if (len == 0 || len == UNIV_SQL_NULL) {
 err_len:
-		return("incorrect column length in SYS_TABLES");
+		DBUG_RETURN("incorrect column length in SYS_TABLES");
 	}
 	rec_get_nth_field_offs_old(
 		rec, DICT_FLD__SYS_TABLES__DB_TRX_ID, &len);
@@ -1101,7 +1121,7 @@ err_len:
 		goto err_len;
 	}
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /** Read and return the contents of a SYS_TABLESPACES record.
@@ -1117,6 +1137,7 @@ dict_sys_tablespaces_rec_read(
 	char*		name,
 	ulint*		flags)
 {
+	DBUG_ENTER("dict_sys_tablespaces_rec_read");
 	const byte*	field;
 	ulint		len;
 
@@ -1125,7 +1146,7 @@ dict_sys_tablespaces_rec_read(
 	if (len != DICT_FLD_LEN_SPACE) {
 		ib::error() << "Wrong field length in SYS_TABLESPACES.SPACE: "
 		<< len;
-		return(false);
+		DBUG_RETURN(false);
 	}
 	*id = mach_read_from_4(field);
 
@@ -1134,7 +1155,7 @@ dict_sys_tablespaces_rec_read(
 	if (len == 0 || len == UNIV_SQL_NULL) {
 		ib::error() << "Wrong field length in SYS_TABLESPACES.NAME: "
 			<< len;
-		return(false);
+		DBUG_RETURN(false);
 	}
 	strncpy(name, reinterpret_cast<const char*>(field), NAME_LEN);
 
@@ -1144,11 +1165,11 @@ dict_sys_tablespaces_rec_read(
 	if (len != 4) {
 		ib::error() << "Wrong field length in SYS_TABLESPACES.FLAGS: "
 			<< len;
-		return(false);
+		DBUG_RETURN(false);
 	}
 	*flags = mach_read_from_4(field);
 
-	return(true);
+	DBUG_RETURN(true);
 }
 
 /** Load and check each general tablespace mentioned in the SYS_TABLESPACES.
@@ -1268,6 +1289,7 @@ dict_sys_tables_rec_read(
 	ulint*			flags,
 	ulint*			flags2)
 {
+	DBUG_ENTER("dict_sys_tables_rec_read");
 	const byte*	field;
 	ulint		len;
 	ulint		type;
@@ -1311,7 +1333,7 @@ dict_sys_tables_rec_read(
 			" SYS_TABLES.TYPE=" << type <<
 			" SYS_TABLES.N_COLS=" << *n_cols;
 		*flags = ULINT_UNDEFINED;
-		return(false);
+		DBUG_RETURN(false);
 	}
 
 	*flags = dict_sys_tables_type_to_tf(type, *n_cols);
@@ -1327,7 +1349,7 @@ dict_sys_tables_rec_read(
 	/* Now that we have used this bit, unset it. */
 	*n_cols &= ~DICT_N_COLS_COMPACT;
 
-	return(true);
+	DBUG_RETURN(true);
 }
 
 /** Load and check each non-predefined tablespace mentioned in SYS_TABLES.
@@ -1567,6 +1589,7 @@ dict_load_column_low(
 					records the "n" of "nth" virtual
 					column */
 {
+	DBUG_ENTER("dict_load_column_low");
 	char*		name;
 	const byte*	field;
 	ulint		len;
@@ -1579,24 +1602,24 @@ dict_load_column_low(
 	ut_ad(table || column);
 
 	if (rec_get_deleted_flag(rec, 0)) {
-		return(dict_load_column_del);
+		DBUG_RETURN(dict_load_column_del);
 	}
 
 	if (rec_get_n_fields_old(rec) != DICT_NUM_FIELDS__SYS_COLUMNS) {
-		return("wrong number of columns in SYS_COLUMNS record");
+		DBUG_RETURN("wrong number of columns in SYS_COLUMNS record");
 	}
 
 	field = rec_get_nth_field_old(
 		rec, DICT_FLD__SYS_COLUMNS__TABLE_ID, &len);
 	if (len != 8) {
 err_len:
-		return("incorrect column length in SYS_COLUMNS");
+		DBUG_RETURN("incorrect column length in SYS_COLUMNS");
 	}
 
 	if (table_id) {
 		*table_id = mach_read_from_8(field);
 	} else if (table->id != mach_read_from_8(field)) {
-		return("SYS_COLUMNS.TABLE_ID mismatch");
+		DBUG_RETURN("SYS_COLUMNS.TABLE_ID mismatch");
 	}
 
 	field = rec_get_nth_field_old(
@@ -1667,7 +1690,7 @@ err_len:
 	}
 
 	if (table && table->n_def != pos && !(prtype & DATA_VIRTUAL)) {
-		return("SYS_COLUMNS.POS mismatch");
+		DBUG_RETURN("SYS_COLUMNS.POS mismatch");
 	}
 
 	field = rec_get_nth_field_old(
@@ -1708,7 +1731,7 @@ err_len:
 		*nth_v_col = dict_get_v_col_pos(pos);
 	}
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /** Error message for a delete-marked record in dict_load_virtual_low() */
@@ -1734,29 +1757,30 @@ dict_load_virtual_low(
 	ulint*		base_pos,
 	const rec_t*	rec)
 {
+	DBUG_ENTER("dict_load_virtual_low");
 	const byte*	field;
 	ulint		len;
 	ulint		base;
 
 	if (rec_get_deleted_flag(rec, 0)) {
-		return(dict_load_virtual_del);
+		DBUG_RETURN(dict_load_virtual_del);
 	}
 
 	if (rec_get_n_fields_old(rec) != DICT_NUM_FIELDS__SYS_VIRTUAL) {
-		return("wrong number of columns in SYS_VIRTUAL record");
+		DBUG_RETURN("wrong number of columns in SYS_VIRTUAL record");
 	}
 
 	field = rec_get_nth_field_old(
 		rec, DICT_FLD__SYS_VIRTUAL__TABLE_ID, &len);
 	if (len != 8) {
 err_len:
-		return("incorrect column length in SYS_VIRTUAL");
+		DBUG_RETURN("incorrect column length in SYS_VIRTUAL");
 	}
 
 	if (table_id != NULL) {
 		*table_id = mach_read_from_8(field);
 	} else if (table->id != mach_read_from_8(field)) {
-		return("SYS_VIRTUAL.TABLE_ID mismatch");
+		DBUG_RETURN("SYS_VIRTUAL.TABLE_ID mismatch");
 	}
 
 	field = rec_get_nth_field_old(
@@ -1797,7 +1821,7 @@ err_len:
 		*column = dict_table_get_nth_col(table, base);
 	}
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 /********************************************************************//**
 Loads definitions for table columns. */
@@ -1809,6 +1833,7 @@ dict_load_columns(
 	mem_heap_t*	heap)	/*!< in/out: memory heap
 				for temporary storage */
 {
+	DBUG_ENTER("dict_load_columns");
 	dict_table_t*	sys_columns;
 	dict_index_t*	sys_index;
 	btr_pcur_t	pcur;
@@ -1910,6 +1935,7 @@ next_rec:
 
 	btr_pcur_close(&pcur);
 	mtr_commit(&mtr);
+	DBUG_VOID_RETURN;
 }
 
 /** Loads SYS_VIRTUAL info for one virtual column
@@ -1926,6 +1952,7 @@ dict_load_virtual_one_col(
 	dict_v_col_t*	v_col,
 	mem_heap_t*	heap)
 {
+	DBUG_ENTER("dict_load_virtual_one_col");
 	dict_table_t*	sys_virtual;
 	dict_index_t*	sys_virtual_index;
 	btr_pcur_t	pcur;
@@ -1940,7 +1967,7 @@ dict_load_virtual_one_col(
 	ut_ad(mutex_own(&dict_sys->mutex));
 
 	if (v_col->num_base == 0) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	mtr_start(&mtr);
@@ -2006,6 +2033,7 @@ dict_load_virtual_one_col(
 
 	btr_pcur_close(&pcur);
 	mtr_commit(&mtr);
+	DBUG_VOID_RETURN;
 }
 
 /** Loads info from SYS_VIRTUAL for virtual columns.
@@ -2018,11 +2046,13 @@ dict_load_virtual(
 	dict_table_t*	table,
 	mem_heap_t*	heap)
 {
+	DBUG_ENTER("dict_load_virtual");
 	for (ulint i = 0; i < table->n_v_cols; i++) {
 		dict_v_col_t*	v_col = dict_table_get_nth_v_col(table, i);
 
 		dict_load_virtual_one_col(table, i, v_col, heap);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Error message for a delete-marked record in dict_load_field_low() */
@@ -2050,6 +2080,7 @@ dict_load_field_low(
 					for temporary storage */
 	const rec_t*	rec)		/*!< in: SYS_FIELDS record */
 {
+	DBUG_ENTER("dict_load_field_low");
 	const byte*	field;
 	ulint		len;
 	ulint		pos_and_prefix_len;
@@ -2061,18 +2092,18 @@ dict_load_field_low(
 	ut_a((!index) || (!sys_field));
 
 	if (rec_get_deleted_flag(rec, 0)) {
-		return(dict_load_field_del);
+		DBUG_RETURN(dict_load_field_del);
 	}
 
 	if (rec_get_n_fields_old(rec) != DICT_NUM_FIELDS__SYS_FIELDS) {
-		return("wrong number of columns in SYS_FIELDS record");
+		DBUG_RETURN("wrong number of columns in SYS_FIELDS record");
 	}
 
 	field = rec_get_nth_field_old(
 		rec, DICT_FLD__SYS_FIELDS__INDEX_ID, &len);
 	if (len != 8) {
 err_len:
-		return("incorrect column length in SYS_FIELDS");
+		DBUG_RETURN("incorrect column length in SYS_FIELDS");
 	}
 
 	if (!index) {
@@ -2082,7 +2113,7 @@ err_len:
 	} else {
 		first_field = (index->n_def == 0);
 		if (memcmp(field, index_id, 8)) {
-			return("SYS_FIELDS.INDEX_ID mismatch");
+			DBUG_RETURN("SYS_FIELDS.INDEX_ID mismatch");
 		}
 	}
 
@@ -2105,7 +2136,7 @@ err_len:
 	if (index && UNIV_UNLIKELY
 	    ((pos_and_prefix_len & 0xFFFFUL) != index->n_def
 	     && (pos_and_prefix_len >> 16 & 0xFFFF) != index->n_def)) {
-		return("SYS_FIELDS.POS mismatch");
+		DBUG_RETURN("SYS_FIELDS.POS mismatch");
 	}
 
 	if (first_field || pos_and_prefix_len > 0xFFFFUL) {
@@ -2147,7 +2178,7 @@ err_len:
 		*pos = position;
 	}
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /********************************************************************//**
@@ -2160,6 +2191,7 @@ dict_load_fields(
 	dict_index_t*	index,	/*!< in/out: index whose fields to load */
 	mem_heap_t*	heap)	/*!< in: memory heap for temporary storage */
 {
+	DBUG_ENTER("dict_load_fields");
 	dict_table_t*	sys_fields;
 	dict_index_t*	sys_index;
 	btr_pcur_t	pcur;
@@ -2221,7 +2253,7 @@ next_rec:
 func_exit:
 	btr_pcur_close(&pcur);
 	mtr_commit(&mtr);
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /** Error message for a delete-marked record in dict_load_index_low() */
@@ -2249,6 +2281,7 @@ dict_load_index_low(
 					*index */
 	dict_index_t**	index)		/*!< out,own: index, or NULL */
 {
+	DBUG_ENTER("dict_load_index_low");
 	const byte*	field;
 	ulint		len;
 	ulint		name_len;
@@ -2266,7 +2299,7 @@ dict_load_index_low(
 	}
 
 	if (rec_get_deleted_flag(rec, 0)) {
-		return(dict_load_index_del);
+		DBUG_RETURN(dict_load_index_del);
 	}
 
 	if (rec_get_n_fields_old(rec) == DICT_NUM_FIELDS__SYS_INDEXES) {
@@ -2281,7 +2314,7 @@ dict_load_index_low(
 			merge_threshold = DICT_INDEX_MERGE_THRESHOLD_DEFAULT;
 			break;
 		default:
-			return("incorrect MERGE_THRESHOLD length"
+			DBUG_RETURN("incorrect MERGE_THRESHOLD length"
 			       " in SYS_INDEXES");
 		}
 	} else if (rec_get_n_fields_old(rec)
@@ -2290,14 +2323,14 @@ dict_load_index_low(
 
 		merge_threshold = DICT_INDEX_MERGE_THRESHOLD_DEFAULT;
 	} else {
-		return("wrong number of columns in SYS_INDEXES record");
+		DBUG_RETURN("wrong number of columns in SYS_INDEXES record");
 	}
 
 	field = rec_get_nth_field_old(
 		rec, DICT_FLD__SYS_INDEXES__TABLE_ID, &len);
 	if (len != 8) {
 err_len:
-		return("incorrect column length in SYS_INDEXES");
+		DBUG_RETURN("incorrect column length in SYS_INDEXES");
 	}
 
 	if (!allocate) {
@@ -2306,7 +2339,7 @@ err_len:
 	} else if (memcmp(field, table_id, 8)) {
 		/* Caller supplied table_id, verify it is the same
 		id as on the index record */
-		return(dict_load_index_id_err);
+		DBUG_RETURN(dict_load_index_id_err);
 	}
 
 	field = rec_get_nth_field_old(
@@ -2351,7 +2384,7 @@ err_len:
 	}
 	type = mach_read_from_4(field);
 	if (type & (~0U << DICT_IT_BITS)) {
-		return("unknown SYS_INDEXES.TYPE bits");
+		DBUG_RETURN("unknown SYS_INDEXES.TYPE bits");
 	}
 
 	field = rec_get_nth_field_old(
@@ -2382,7 +2415,7 @@ err_len:
 	ut_ad((*index)->page);
 	(*index)->merge_threshold = merge_threshold;
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /********************************************************************//**
@@ -2400,6 +2433,7 @@ dict_load_indexes(
 				/*!< in: error to be ignored when
 				loading the index definition */
 {
+	DBUG_ENTER("dict_load_indexes");
 	dict_table_t*	sys_indexes;
 	dict_index_t*	sys_index;
 	btr_pcur_t	pcur;
@@ -2649,7 +2683,7 @@ func_exit:
 	btr_pcur_close(&pcur);
 	mtr_commit(&mtr);
 
-	return(error);
+	DBUG_RETURN(error);
 }
 
 /** Loads a table definition from a SYS_TABLES record to dict_table_t.
@@ -2665,6 +2699,7 @@ dict_load_table_low(
 	const rec_t*	rec,
 	dict_table_t**	table)
 {
+	DBUG_ENTER("dict_load_table_low");
 	table_id_t	table_id;
 	ulint		space_id;
 	ulint		n_cols;
@@ -2675,14 +2710,14 @@ dict_load_table_low(
 
 	const char* error_text = dict_sys_tables_rec_check(rec);
 	if (error_text != NULL) {
-		return(error_text);
+		DBUG_RETURN(error_text);
 	}
 
 	dict_sys_tables_rec_read(rec, name, &table_id, &space_id,
 				 &t_num, &flags, &flags2);
 
 	if (flags == ULINT_UNDEFINED) {
-		return("incorrect flags in SYS_TABLES");
+		DBUG_RETURN("incorrect flags in SYS_TABLES");
 	}
 
 	dict_table_decode_n_col(t_num, &n_cols, &n_v_col);
@@ -2692,7 +2727,7 @@ dict_load_table_low(
 	(*table)->id = table_id;
 	(*table)->ibd_file_missing = FALSE;
 
-	return(NULL);
+	DBUG_RETURN(NULL);
 }
 
 /********************************************************************//**
@@ -2707,6 +2742,7 @@ dict_save_data_dir_path(
 	dict_table_t*	table,		/*!< in/out: table */
 	char*		filepath)	/*!< in: filepath of tablespace */
 {
+	DBUG_ENTER("dict_save_data_dir_path");
 	ut_ad(mutex_own(&dict_sys->mutex));
 	ut_a(DICT_TF_HAS_DATA_DIR(table->flags));
 
@@ -2729,6 +2765,7 @@ dict_save_data_dir_path(
 
 		ut_free(default_filepath);
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Make sure the data_dir_path is saved in dict_table_t if DATA DIRECTORY
@@ -2740,6 +2777,7 @@ dict_get_and_save_data_dir_path(
 	dict_table_t*	table,
 	bool		dict_mutex_own)
 {
+	DBUG_ENTER("dict_get_and_save_data_dir_path");
 	if (DICT_TF_HAS_DATA_DIR(table->flags)
 	    && (!table->data_dir_path)) {
 		char*	path = fil_space_get_first_path(table->space);
@@ -2769,6 +2807,7 @@ dict_get_and_save_data_dir_path(
 			dict_mutex_exit_for_mysql();
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Make sure the tablespace name is saved in dict_table_t if the table
@@ -2781,9 +2820,10 @@ dict_get_and_save_space_name(
 	dict_table_t*	table,
 	bool		dict_mutex_own)
 {
+	DBUG_ENTER("dict_get_and_save_space_name");
 	/* Do this only for general tablespaces. */
 	if (!DICT_TF_HAS_SHARED_SPACE(table->flags)) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	bool	use_cache = true;
@@ -2797,7 +2837,7 @@ dict_get_and_save_space_name(
 			use_cache = false;
 		} else {
 			/* Keep and use this name */
-			return;
+			DBUG_VOID_RETURN;
 		}
 	}
 
@@ -2816,7 +2856,7 @@ dict_get_and_save_space_name(
 					table->heap, space->name);
 
 				fil_space_release(space);
-				return;
+				DBUG_VOID_RETURN;
 			}
 			fil_space_release(space);
 		}
@@ -2835,6 +2875,7 @@ dict_get_and_save_space_name(
 			dict_mutex_exit_for_mysql();
 		}
 	}
+	DBUG_VOID_RETURN;
 }
 
 /** Loads a table definition and also all its index definitions, and also
@@ -2901,22 +2942,23 @@ dict_load_tablespace(
 	mem_heap_t*		heap,
 	dict_err_ignore_t	ignore_err)
 {
+	DBUG_ENTER("dict_load_tablespace");
 	/* The system tablespace is always available. */
 	if (is_system_tablespace(table->space)) {
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (table->flags2 & DICT_TF2_DISCARDED) {
 		ib::warn() << "Tablespace for table " << table->name
 			<< " is set as discarded.";
 		table->ibd_file_missing = TRUE;
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (dict_table_is_temporary(table)) {
 		/* Do not bother to retry opening temporary tables. */
 		table->ibd_file_missing = TRUE;
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	/* A file-per-table table name is also the tablespace name.
@@ -2950,7 +2992,7 @@ dict_load_tablespace(
 		    table->space, space_name, false,
 		    true, heap, table->id)) {
 		ut_free(shared_space_name);
-		return;
+		DBUG_VOID_RETURN;
 	}
 
 	if (!(ignore_err & DICT_ERR_IGNORE_RECOVER_LOCK)) {
@@ -3006,6 +3048,7 @@ dict_load_tablespace(
 
 	ut_free(shared_space_name);
 	ut_free(filepath);
+	DBUG_VOID_RETURN;
 }
 
 /** Loads a table definition and also all its index definitions.
@@ -3275,6 +3318,7 @@ dict_load_table_on_id(
 	dict_err_ignore_t	ignore_err)	/*!< in: errors to ignore
 						when loading the table */
 {
+	DBUG_ENTER("dict_load_table_on_id");
 	byte		id_buf[8];
 	btr_pcur_t	pcur;
 	mem_heap_t*	heap;
@@ -3359,7 +3403,7 @@ check_rec:
 	mtr_commit(&mtr);
 	mem_heap_free(heap);
 
-	return(table);
+	DBUG_RETURN(table);
 }
 
 /********************************************************************//**
@@ -3371,6 +3415,7 @@ dict_load_sys_table(
 /*================*/
 	dict_table_t*	table)	/*!< in: system table */
 {
+	DBUG_ENTER("dict_load_sys_table");
 	mem_heap_t*	heap;
 
 	ut_ad(mutex_own(&dict_sys->mutex));
@@ -3380,6 +3425,7 @@ dict_load_sys_table(
 	dict_load_indexes(table, heap, DICT_ERR_IGNORE_NONE);
 
 	mem_heap_free(heap);
+	DBUG_VOID_RETURN;
 }
 
 /********************************************************************//**
@@ -3398,6 +3444,7 @@ dict_load_foreign_cols(
 /*===================*/
 	dict_foreign_t*	foreign)/*!< in/out: foreign constraint object */
 {
+	DBUG_ENTER("dict_load_foreign_cols");
 	dict_table_t*	sys_foreign_cols;
 	dict_index_t*	sys_index;
 	btr_pcur_t	pcur;
@@ -3504,6 +3551,7 @@ dict_load_foreign_cols(
 
 	btr_pcur_close(&pcur);
 	mtr_commit(&mtr);
+	DBUG_VOID_RETURN;
 }
 
 /***********************************************************************//**
