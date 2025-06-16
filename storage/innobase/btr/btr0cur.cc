@@ -5518,6 +5518,7 @@ btr_cur_add_path_info(
 	slot->n_recs = page_get_n_recs(page);
 	slot->page_no = page_get_page_no(page);
 	slot->page_level = btr_page_get_level_low(page);
+	DBUG_VOID_RETURN;
 }
 
 /*******************************************************************//**
