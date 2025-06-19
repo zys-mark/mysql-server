@@ -2327,7 +2327,7 @@ dict_foreigns_has_s_base_col(
 	dict_foreign_t*	foreign;
 
 	if (table->s_cols == NULL) {
-		return (false);
+		DBUG_RETURN(false);
 	}
 
 	for (dict_foreign_set::const_iterator it = local_fk_set.begin();

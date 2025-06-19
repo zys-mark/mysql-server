@@ -1007,6 +1007,9 @@ trx_undo_page_report_modify(
 			DBUG_RETURN(0);
 		}
 
+		const dict_col_t *col = dict_index_get_nth_col(index, i);
+		const char *col_name = dict_table_get_col_name(table, col->ind);
+		DBUG_PRINT("trx", ("Build undo log for column %s", col_name));
 		ptr += mach_write_compressed(ptr, flen);
 
 		if (flen != UNIV_SQL_NULL) {
@@ -1231,6 +1234,8 @@ trx_undo_page_report_modify(
 				= dict_table_get_nth_col(table, col_no);
 
 			if (col->ord_part) {
+				const char *col_name = dict_table_get_col_name(table, col_no);
+				DBUG_PRINT("trx", ("Build undo log for column %s", col_name));
 				ulint			pos;
 				spatial_status_t	spatial_status;
 
@@ -2060,6 +2065,7 @@ trx_undo_report_row_operation(
 			mtr_commit(&mtr);
 		} else {
 			/* Success */
+
 			undo->guess_block = undo_block;
 			mtr_commit(&mtr);
 
